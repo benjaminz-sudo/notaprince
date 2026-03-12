@@ -3,20 +3,20 @@
 
 Premiere partie;
 
-boucle qui dit quel joueur 
+boucle qui dit où est joueur 
   
 partie interaction
   
-matrice de taille a determiner qui va contenir les données de salle ( matrice de salles)
-  coordonnées du joueurs ( x,y)
+matrice de taille a determiner qui va contenir les données de salle ( matrice de salles) -> Classe Salle
+  coordonnées du joueurs (x,y)
 
 
-  fonction principale : afficher la carte ( quelle direction, si ce nest pas une salle qui a été encore init , on va lui dmd une graine de RNG
+  fonction principale : afficher la carte ( quelle direction, si ce nest pas une salle qui a été encore init , on va lui dmd une graine de RNG)
 
 
 
                                           
     RNG ( autre partie):
 
-génération de salle, principe ; salle qui contiendrait tous les types de salles 
+génération de salle, principe ; classe salle qui contiendrait tous les types de salles 
                                            
