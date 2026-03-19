@@ -1,6 +1,24 @@
 
 (zuul_bad)
 
+
+update: 
+
+retravailler la méthode affichage de la carte
+generation salle  ? 
+est ce que les salles existent déjà ?
+est ce que le mot chevre ? mot ont des propriété magiques
+
+
+implémentation de la carte : ( approche de tableau de tableau inoptimal)
+toutes les cases dans un grand tableau; indice de ce grand tableau identifant unique de tuile
+fonction de conversion ; paire de cordonnées dans ce tableau? 
+( quelles sont les personnages présents)
+
+fonction de voisinage: donner les indices de voisins 
+
+clarifie la responsabilité , qui f quoi ?
+
 Premiere partie;
 
 boucle qui dit où est joueur 
