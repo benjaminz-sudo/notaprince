@@ -21,8 +21,8 @@ Pour nous faciliter la tache, on f dabord une premiere version sans map.
 - sans retour arrière pr l'instant, " par ex chaque salle tas acces a deux salles " et donc on peut retenir les id des salles et les mettres dans le B tree ? 
 
 
-Une personne implement l'arbre binaire
-autre : implémentation des salles : classe salle à détailler
+Une personne implement l'arbre binaire (Melissa)
+autre : implémentation des salles : classe salle à détailler (Benjamin pour la classe, Vishnujan pour les différents layouts)
 autre; classe Joueur ? 
 autre: grand tableau pour génerer des id unique, choisi 
 
