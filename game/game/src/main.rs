@@ -33,7 +33,6 @@ fn main() {
     
     println!("Hello, {}!", input.trim()); // Trim removes trailing newline
     
-    println!("{}, {}", coord.x, coord.y); // Trim removes trailing newline
 
     let direction = input.trim(); // On stocke l'input nettoyé
 
@@ -75,6 +74,8 @@ fn main() {
                 println!("I don't understand that command.");
             }
         }
+        
+    println!("{}, {}", coord.x, coord.y); // Trim removes trailing newline
 
 }
 }
