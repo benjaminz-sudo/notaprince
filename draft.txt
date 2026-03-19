@@ -1,6 +1,14 @@
 
 (zuul_bad)
 
+barème de notation: clarté et expressivité du code 5 pts
+architecture 5 pts 
+documentation ( docstring totalité des items ) 2 pts
+efficience  2 pts
+ambition du projet 4 points
+journal de développement 2 ponts
+total de 20 sur les projets
+l'oral n'est pas évalué en soi
 
 update: 
 
@@ -20,6 +28,11 @@ fonction de voisinage: donner les indices de voisins
 pas de hashmap que des b tree si possible ?
 
 clarifie la responsabilité , qui f quoi ?
+
+problème de duplicata; 
+
+identifiants 
+
 
 Premiere partie;
 
