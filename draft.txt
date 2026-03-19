@@ -31,7 +31,14 @@ clarifie la responsabilité , qui f quoi ?
 
 problème de duplicata; 
 
-identifiants 
+
+identifiants  de table en int ( sparse ou complet)
+b tree 
+
+structure de données contenant l'ensembles de données d'une tuile 
+
+moyen dasscoier à une tuile ou salle
+
 
 
 Premiere partie;
