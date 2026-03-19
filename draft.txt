@@ -17,6 +17,8 @@ fonction de conversion ; paire de cordonnées dans ce tableau?
 
 fonction de voisinage: donner les indices de voisins 
 
+pas de hashmap que des b tree si possible ?
+
 clarifie la responsabilité , qui f quoi ?
 
 Premiere partie;
