@@ -12,6 +12,20 @@ l'oral n'est pas évalué en soi
 
 update: 
 
+Pour nous faciliter la tache, on f dabord une premiere version sans map.
+
+- STRUCTURE DARBRE BINAIRE CAPABLE DE CONTENIR POUR CHAQUE NOEUD UNE SALLE ET SES INFOS
+- SALLE et informations ( IDENTIFANT DE SALLES QUI VONT LA SUIVRE OU NB DE SORTIES; case suivante e
+- autre structure taille fixe ou chaque case est un identifiant, le numéro de la case, on peut accéder aux autre classe,
+- obtneir la salle actuelle du joueur , choper les infos de la salle et les choix de "sortie"
+- sans retour arrière pr l'instant, " par ex chaque salle tas acces a deux salles " et donc on peut retenir les id des salles et les mettres dans le B tree ? 
+
+
+Une personne implement l'arbre binaire
+autre : implémentation des salles : classe salle à détailler
+autre; classe Joueur ? 
+autre: grand tableau pour génerer des id unique, choisi 
+
 retravailler la méthode affichage de la carte
 generation salle  ? 
 est ce que les salles existent déjà ?
