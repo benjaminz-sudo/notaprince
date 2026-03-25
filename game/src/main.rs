@@ -3,16 +3,16 @@ use std::io;
 
 ///Class containing every possible room in the game. The player can generate a room using a random word which will define its layout.
 pub struct Room {
-    name: String,
-    north: Option<u32>,
-    south: Option<u32>,
-    east: Option<u32>,
-    west: Option<u32>,
+    pub name: String,
+    pub north: Option<u32>,
+    pub south: Option<u32>,
+    pub east: Option<u32>,
+    pub west: Option<u32>,
 }
 impl Room {
-    fn new() -> Room {
+    fn new(name: String) -> Room {
         Room {
-            name: String,
+            name,
             north: None,
             west: None,
             south: None,
