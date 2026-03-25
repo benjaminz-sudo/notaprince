@@ -12,12 +12,17 @@ pub struct Room {
 impl Room {
     fn new() -> Room {
         Room {
-            name: String::from("Nom de salle non défini"),
+            name: String,
             north: None,
             west: None,
             south: None,
             east: None,
         }
+    }
+
+    // Fonction pour décrire la salle
+    fn get_description(&self) -> String {
+        self.name.clone()
     }
 
     fn generateEmptyNeighbours(&mut self) {
