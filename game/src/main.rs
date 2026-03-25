@@ -1,14 +1,13 @@
 use std::collections::BTreeMap;
 use std::io;
-use std::io::prelude::*;
 
 ///Class containing every possible room in the game. The player can generate a room using a random word which will define its layout.
 pub struct Room {
     name: String,
-    north: Option<Box<Room>>,
-    south: Option<Box<Room>>,
-    east: Option<Box<Room>>,
-    west: Option<Box<Room>>,
+    north: Option<u32>,
+    south: Option<u32>,
+    east: Option<u32>,
+    west: Option<u32>,
 }
 impl Room {
     fn new() -> Room {
