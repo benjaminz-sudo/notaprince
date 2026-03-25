@@ -1,3 +1,4 @@
+use rand::Rng;
 use std::collections::BTreeMap;
 use std::io;
 
