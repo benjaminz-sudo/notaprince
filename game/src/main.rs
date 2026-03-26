@@ -15,15 +15,19 @@ pub struct Room {
     id_room: i64,
     // The ID of the room as a place where the player can move
     id_game: i64,
+
+    parent: Option<i64>, // pour revenir en arrière, on peut stocker l'ID de la salle précédente (parent)
+
     // The next rooms this room can lead to
     next_rooms: Vec<i64>, //(Arbre Binaire : redirection vers une salle suivante)
 }
 
 impl Room {
-    pub fn new() -> Room {
+    pub fn new(id_game: i64, parent: Option<i64>) -> Room {
         Room {
             id_room: NEXT_ID_ROOM.fetch_add(1, Ordering::SeqCst),
-            id_game: -1,
+            id_game,
+            parent,
             next_rooms: Vec::new(),
         }
     }
@@ -39,53 +43,47 @@ fn main() {
     let mut monde: BTreeMap<i64, Room> = BTreeMap::new();
     let mut rng = rand::thread_rng(); // on cree un générateur de nombres aléatoires
 
-    //on cree un vecteur pour stocker les ids des salles à placer
-    let mut ids = vec![ORIGINE_RACINE];
+    //on cree un vecteur pour stocker les ids des salles à placer (avec leur parent)
+    let mut ids = vec![(ORIGINE_RACINE, None)];
 
     // Tant qu'on n'a pas 20 salles et qu'on a des IDs à placer
     while monde.len() < 20 && !ids.is_empty() {
-        // On prend le premier ID de la liste
-        let current_id = ids.remove(0);
+        // On prend le premier ID de la liste pour le traiter
+        let (current_id, parent_id) = ids.remove(0);
 
         // Si la salle n'existe pas encore, on la crée
         if !monde.contains_key(&current_id) {
-            let mut nouvelle_salle = Room::new();
-            nouvelle_salle.set_id_game(current_id);
+            let mut nouvelle_salle = Room::new(current_id, parent_id); // On crée une nouvelle salle avec l'ID de jeu actuel
 
-            // On définit l'écart maximal, augmente avec le nombre de salles
-            let ecart_max = (monde.len() as i64 / 5) + 2; // commence à 2, puis 3, jusqu'a 6
-
-            // On génère 1 ou 2 enfants de manière aléatoire
-            let nb_enfants = rng.gen_range(1..=2);
-            for _ in 0..nb_enfants {
-                //  ID enfant = ID parent +/- écart
-                let ecart = rng.gen_range(1..=ecart_max);
-
-                // l'enfant est à gauche (ID plus petit) ou à droite (ID plus grand)
+            //on genere un nombre aléatoire entre 1 et 2 pour le nombre de sorties
+            let nb_sorties = rng.gen_range(1..=2);
+            for _ in 0..nb_sorties {
+                let ecart = rng.gen_range(1..=5);
                 let signe = if rng.gen_bool(0.5) { 1 } else { -1 };
-
-                // Calcul de l'ID de l'enfant en fonction du parent et de l'écart
                 let enfant_id = current_id + (signe * ecart);
 
-                //  Éviter les boucles (ne pas pointer vers un parent)
-                if !monde.contains_key(&enfant_id) && enfant_id != ORIGINE_RACINE {
-                    nouvelle_salle.next_rooms.push(enfant_id); // On ajoute l'enfant à la liste des salles suivantes de la salle actuelle
-                    ids.push(enfant_id); // On ajoute l'enfant à la liste pour le traiter plus tard
+                //  évite de boucler sur soi-même ou sur le parent
+                if enfant_id != current_id
+                    && Some(enfant_id) != parent_id
+                    && !monde.contains_key(&enfant_id)
+                {
+                    nouvelle_salle.next_rooms.push(enfant_id);
+                    ids.push((enfant_id, Some(current_id)));
                 }
             }
-
-            // On ajoute la nouvelle salle au monde avec son ID de jeu
             monde.insert(current_id, nouvelle_salle);
         }
     }
 
-    println!("Monde généré avec {} salles :", monde.len());
-
-    println!("structure de l'arbre :");
+    // Affichage de la structure
     for (id, salle) in &monde {
+        let parent_str = match salle.parent {
+            Some(p) => p.to_string(),
+            None => "RACINE".to_string(),
+        };
         println!(
-            "Salle [ID_GAME: {}] (ID_ROOM : {}) -> Sorties : {:?}",
-            id, salle.id_room, salle.next_rooms
+            " Salle {} | Parent (Retour): {} | Enfants (Avancer): {:?}",
+            id, parent_str, salle.next_rooms
         );
     }
 }
