@@ -51,6 +51,6 @@ fn main() {
 
     println!("\nListe des salles dans le BTreeMap :");
     for (id, salle) in &monde {
-        println!(" - ID [{}]: {}", id, salle.get_description());
+        println!(" - ID {}: {}", id, salle.get_description());
     }
 }
