@@ -1,72 +1,31 @@
-use std::io;
-use std::io::prelude::*;
+use std::sync::atomic::{AtomicI64, Ordering};
 
-///Class containing every possible room in the game. The player can generate a room using a random word which will define its layout.
-pub struct Room{
-    name:String,
-    north:Option<Box<Room>>,
-    south:Option<Box<Room>>,
-    east:Option<Box<Room>>,
-    west:Option<Box<Room>>,
+// Class containing every possible room in the game.
+// The player can generate a room using a random word which will define its layout.
+static NEXT_ID_ROOM: AtomicI64 = AtomicI64::new(0);
+
+pub struct Room {
+    // The unique ID used to identify the type of room
+    id_room: i64,
+    // The ID of the room as a place where the player can move
+    id_game: i64,
+    // The next rooms this room can lead to
+    next_rooms: Vec<i64>,
 }
-impl Room{
-    fn new()->Room{
-        Room{
-            name:String::from("Nom de salle non défini"),
-            north:None,
-            west:None,
-            south:None,
-            east:None,
+
+impl Room {
+    pub fn new() -> Room {
+        Room {
+            id_room: NEXT_ID_ROOM.fetch_add(1, Ordering::SeqCst),
+            id_game: -1,
+            next_rooms: Vec::new(),
         }
     }
 
-    fn generateEmptyNeighbours(&mut self){
-        self.north = Some(Box::new(Room {
-            name: String::from("Salle N"),
-            ..Room::new() // fill remaining fields with defaults
-        }));
-        self.east = Some(Box::new(Room {
-            name: String::from("Salle E"),
-            ..Room::new()
-        }));
-        self.south = Some(Box::new(Room {
-            name: String::from("Salle S"),
-            ..Room::new()
-        }));
-        self.west = Some(Box::new(Room {
-            name: String::from("Salle W"),
-            ..Room::new()
-        }));
-    }
-
-    fn generate(rng:String) -> Room {
-        return Self::randomRoom(rng);
-    }
-
-    fn randomRoom(_rng:String) -> Room{
-        return Room::new();
-        //TODO
-    }
-    
-    fn printRooms(&self){
-        println!("Nearest rooms : \n");
-        println!("- north room : {}",self.north.as_ref().expect("Room N exists").getDescription());
-        println!("- south room : {}",self.south.as_ref().expect("Room S exists").getDescription());
-        println!("- east room : {}",self.east.as_ref().expect("Room E exists").getDescription());
-        println!("- west room : {}",self.west.as_ref().expect("Room W exists").getDescription());
-    }
-
-    fn getDescription(&self)->String{
-        return self.name.clone();
+    pub fn set_id_game(&mut self, new_id: i64) {
+        self.id_game = new_id;
     }
 }
+
 fn main() {
-    println!("Hello, world!");
-    /* let stdin = io::stdin();
-    for line in stdin.lock().lines() {
-        println!("Input lu : {}", line.unwrap());
-    } */
-    let mut room0 = Room::new(); 
-    room0.generateEmptyNeighbours();
-    room0.printRooms();
 }
