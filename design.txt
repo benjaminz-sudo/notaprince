@@ -13,7 +13,7 @@ Description : (dragon qui parle, toilette qui parle, épée à claim, parchemin 
 -> dragon : aucun effet particulier
 -> toilette : en fonction du dialogue, soit nous transporte à la premiere salle ou la deuxieme salle
 -> potions: qui permet de se transporter dans une salle aléaotoire ou donne un autre sort
--> démon : en fonction du dialogue, peut nous tuer ( GAME over) ou rien faire
+-> démon : en fonction du dialogue, peut nous tuer ( GAME over) ou rien faire => input du joueur considéré comme une réponse 
 
 
 2 types différent:
