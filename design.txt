@@ -1,0 +1,30 @@
+Histoire: Player qui veut s'échapper du donjon  ( escape game caché)
+
+
+thème : Fantastique, Aventure
+
+Nom des chambres :  prison, salle du trône, chambre, salle de bain, 
+
+Description : (dragon qui parle, toilette qui parle, épée à claim, parchemin à prendre, salle d'alchimie, couloir, salle obscure et sombre
+
+
+-> collect l'épée pour débloquer une porte
+-> parchemin :  donne des indices sur le parcours gagnant ( combinaison de room ou de chambre à avoir) 
+-> dragon : aucun effet particulier
+-> toilette : en fonction du dialogue, soit nous transporte à la premiere salle ou la deuxieme salle
+-> potions: qui permet de se transporter dans une salle aléaotoire ou donne un autre sort
+-> démon : en fonction du dialogue, peut nous tuer ( GAME over) ou rien faire => input du joueur considéré comme une réponse 
+
+
+2 types différent:
+
+_ un type où on peut dialoguer
+_ un type où on peut interagir avec et  éventuellement le prendre 
+
+fonction à implémenter : A/ getDescription ( de la salle), look (pour les deux types),  ajouter un item à une chambre, 
+
+B/ interact avec l'objet ( peut-être avec énigme),  faire l'inventaire du joueur ( ajouter ou enlever des items), 
+
+C/ mettre en place un parcours gagnant, MAP des salles ( déja prédéfini ? et aussi en fonction de ce que le player a visité ?), mettre en place un sorte de timer ( nombre de salles que le joueur a visite -> parcours
+
+
