@@ -9,7 +9,7 @@ pub struct Room {
     id_room: i64,
     // The ID of the room as a place where the player can move
     id_game: i64,
-    // The next rooms this room can lead to
+    // The next relative indexes this room can lead to
     next_rooms: Vec<i64>,
     //String describing the Room
     description : String,
@@ -31,7 +31,10 @@ impl Room {
     pub fn set_description(&mut self, new_description: String) {
         self.description = new_description;
     }
+
+
 }
+
 
 fn main() {
 }
