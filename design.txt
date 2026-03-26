@@ -1,18 +1,21 @@
-Histoire: Player qui veut s'échapper du donjon
+Histoire: Player qui veut s'échapper du donjon  ( escape game caché)
 
 
 thème : Fantastique, Aventure
 
-Nom des chambres :  prison, salle du trône, chambre,  salle de bain avec les toilettes qui parle, 
+Nom des chambres :  prison, salle du trône, chambre, salle de bain, 
 
-Description : (dragon qui parle, toilette qui parle, épée à claim, parchemin à prendre)
+Description : (dragon qui parle, toilette qui parle, épée à claim, parchemin à prendre, salle d'alchimie, couloir, salle obscure et sombre
 
 
 -> collect l'épée pour débloquer une porte
--> parchemin :  donne des indices sur le parcours gagnant ( combinaison de room ou de chambre à avoir
+-> parchemin :  donne des indices sur le parcours gagnant ( combinaison de room ou de chambre à avoir) 
 -> dragon : aucun effet particulier
 -> toilette : en fonction du dialogue, soit nous transporte à la premiere salle ou la deuxieme salle
-fonction: A/ getDescription, look, 
+-> potions: qui permet de se transporter dans une salle aléaotoire ou donne un autre sort
+-> démon : en fonction du dialogue, peut nous tuer ( GAME over) ou rien faire
+
+fonction à implémenter : A/ getDescription, look,  associer une salle  et ses items
 
 B/ interact avec l'objet ( peut-être avec énigme), 
 
