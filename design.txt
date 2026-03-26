@@ -15,7 +15,16 @@ Description : (dragon qui parle, toilette qui parle, épée à claim, parchemin 
 -> potions: qui permet de se transporter dans une salle aléaotoire ou donne un autre sort
 -> démon : en fonction du dialogue, peut nous tuer ( GAME over) ou rien faire
 
-fonction à implémenter : A/ getDescription, look,  associer une salle  et ses items
 
-B/ interact avec l'objet ( peut-être avec énigme), 
+2 types différent:
+
+_ un type où on peut dialoguer
+_ un type où on peut interagir avec et  éventuellement le prendre 
+
+fonction à implémenter : A/ getDescription ( de la salle), look (pour les deux types),  ajouter un item à une chambre, 
+
+B/ interact avec l'objet ( peut-être avec énigme),  faire l'inventaire du joueur,  
+
+C/ mettre en place un parcours gagnant, MAP des salles ( déja prédéfini ? et aussi en fonction de ce que le player a visité ?)
+
 
