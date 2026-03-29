@@ -12,8 +12,6 @@ pub struct Room {
     // The ID of the room as a place where the player can move
     id_game: i64,
 
-    parent: Option<i64>, // pour revenir en arrière, on peut stocker l'ID de la salle précédente (parent)
-
     // The next relative indexes this room can lead to
     next_rooms: Vec<i64>,
     //String describing the Room
@@ -24,17 +22,15 @@ pub struct Room {
 // The player can generate a room using a random word which will define its layout.
 static NEXT_ID_ROOM: AtomicI64 = AtomicI64::new(0);
 impl Room {
-    pub fn new(id_game: i64, parent: Option<i64>) -> Room {
+    pub fn new(id_game: i64) -> Room {
         Room {
             id_room: NEXT_ID_ROOM.fetch_add(1, Ordering::SeqCst),
             id_game,
-            parent,
             next_rooms: Vec::new(),
             description: String::new(),
         }
     }
 
-    //fonction pour ajouter une salle suivante à la salle actuelle
     pub fn set_id_game(&mut self, new_id: i64) {
         self.id_game = new_id;
     }
@@ -53,8 +49,8 @@ fn main_benjamin(){
     let max_game_room: i64 = 10;
     //The index of the player'' position in the game_rooms Vec.
     let player_position_index:i64= 0;
-    let room_test = Room::new(1,None);
-    let room_test2 = Room::new(2,None);
+    let room_test = Room::new(1);
+    let room_test2 = Room::new(2);
     room_layouts.push(room_test);
     room_layouts.push(room_test2);
     println!("Test : {}",room_layouts[1].id_room);
@@ -66,16 +62,16 @@ fn main_melissa(){
     let mut rng = rand::thread_rng(); // on cree un générateur de nombres aléatoires
 
     //on cree un vecteur pour stocker les ids des salles à placer (avec leur parent)
-    let mut ids = vec![(ORIGINE_RACINE, None)];
+    let mut ids = vec![(ORIGINE_RACINE)];
 
     // Tant qu'on n'a pas 20 salles et qu'on a des IDs à placer
     while monde.len() < 20 && !ids.is_empty() {
         // On prend le premier ID de la liste pour le traiter
-        let (current_id, parent_id) = ids.remove(0);
+        let (current_id) = ids.remove(0);
 
         // Si la salle n'existe pas encore, on la crée
         if !monde.contains_key(&current_id) {
-            let mut nouvelle_salle = Room::new(current_id, parent_id); // On crée une nouvelle salle avec l'ID de jeu actuel
+            let mut nouvelle_salle = Room::new(current_id); // On crée une nouvelle salle avec l'ID de jeu actuel
 
             //on genere un nombre aléatoire entre 1 et 2 pour le nombre de sorties
             let nb_sorties = rng.gen_range(1..=2);
@@ -90,7 +86,7 @@ fn main_melissa(){
                     && !monde.contains_key(&enfant_id)
                 {
                     nouvelle_salle.next_rooms.push(enfant_id);
-                    ids.push((enfant_id, Some(current_id)));
+                    ids.push(enfant_id);
                 }
             }
             monde.insert(current_id, nouvelle_salle);
