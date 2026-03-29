@@ -2,11 +2,6 @@ use rand::Rng; // usage de la crate pour utiliser le trait Rng
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicI64, Ordering};
 use std::vec;
-use std::sync::atomic::{AtomicI64, Ordering};
-
-// Class containing every possible room in the game.
-// The player can generate a room using a random word which will define its layout.
-static NEXT_ID_ROOM: AtomicI64 = AtomicI64::new(0);
 
 // Variable globale pour l'origine (Racine)
 const ORIGINE_RACINE: i64 = 1000;
@@ -19,10 +14,15 @@ pub struct Room {
 
     parent: Option<i64>, // pour revenir en arrière, on peut stocker l'ID de la salle précédente (parent)
 
-    // The next rooms this room can lead to
-    next_rooms: Vec<i64>, //(Arbre Binaire : redirection vers une salle suivante)
-}
+    // The next relative indexes this room can lead to
+    next_rooms: Vec<i64>,
+    //String describing the Room
+    description : String,
 
+}
+// Class containing every possible room in the game.
+// The player can generate a room using a random word which will define its layout.
+static NEXT_ID_ROOM: AtomicI64 = AtomicI64::new(0);
 impl Room {
     pub fn new(id_game: i64, parent: Option<i64>) -> Room {
         Room {
@@ -30,6 +30,7 @@ impl Room {
             id_game,
             parent,
             next_rooms: Vec::new(),
+            description: String::new(),
         }
     }
 
@@ -37,9 +38,29 @@ impl Room {
     pub fn set_id_game(&mut self, new_id: i64) {
         self.id_game = new_id;
     }
+    pub fn set_description(&mut self, new_description: String) {
+        self.description = new_description;
+    }
 }
 
-fn main() {
+fn main_benjamin(){
+    //The physical rooms the player can move to. Designated by their id_game
+    let mut game_rooms: Vec<i64> = Vec::new();
+    game_rooms.push(1000);
+    //The possible layouts for each room
+    let mut room_layouts : Vec<Room>=Vec::new();
+    //The player must get to the final room from room 0.
+    let max_game_room: i64 = 10;
+    //The index of the player'' position in the game_rooms Vec.
+    let player_position_index:i64= 0;
+    let room_test = Room::new(1,None);
+    let room_test2 = Room::new(2,None);
+    room_layouts.push(room_test);
+    room_layouts.push(room_test2);
+    println!("Test : {}",room_layouts[1].id_room);
+}
+
+fn main_melissa(){
     //on cree le BtreeMap qui contiendra les salles du jeu
     let mut monde: BTreeMap<i64, Room> = BTreeMap::new();
     let mut rng = rand::thread_rng(); // on cree un générateur de nombres aléatoires
@@ -88,54 +109,8 @@ fn main() {
         );
     }
 }
-
-pub struct Room {
-    // The unique ID used to identify the type of room
-    id_room: i64,
-    // The ID of the room as a place where the player can move
-    id_game: i64,
-    // The next relative indexes this room can lead to
-    next_rooms: Vec<i64>,
-    //String describing the Room
-    description : String,
-
-}
-
-impl Room {
-    pub fn new() -> Room {
-        Room {
-            id_room: NEXT_ID_ROOM.fetch_add(1, Ordering::SeqCst),
-            id_game: -1,
-            next_rooms: Vec::new(),
-            description: String::new(),
-        }
-    }
-
-    pub fn set_id_game(&mut self, new_id: i64) {
-        self.id_game = new_id;
-    }
-    pub fn set_description(&mut self, new_description: String) {
-        self.description = new_description;
-    }
-
-
-
-}
-
 fn main() {
-    //The physical rooms the player can move to. Designated by their id_game
-    let mut game_rooms: Vec<i64> = Vec::new();
-    game_rooms.push(1000);
-    //The possible layouts for each room
-    let mut room_layouts : Vec<Room>=Vec::new();
-    //The player must get to the final room from room 0.
-    let max_game_room: i64 = 10;
-    //The index of the player'' position in the game_rooms Vec.
-    let player_position_index:i64= 0;
-    let RoomTest = Room::new();
-    let RoomTest2 = Room::new();
-    room_layouts.push(RoomTest);
-    room_layouts.push(RoomTest2);
-    println!("Test : {}",room_layouts[1].id_room)
-}
+
+    main_benjamin();
+    main_melissa();
 }
