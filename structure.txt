@@ -1,0 +1,7 @@
+Structures clefs :
+-Un Btree avec pour étiquettes les id_game, il contient les informations de chaque instance de chaque salle générée.(Chaque noeud contient les informations de la salle correspondant à l'id_game)
+-Un Vec qui contient les id_game des salles générées, le joueur est dans une salle générée de ce Vec. Sa position est identifiée par cet id_game. 
+
+Chaque room possible est générée (à l'initialisation du programme) avec un id_room qui l'identifie en tant que concept.
+i.e, au début du programme on crée la salle "Couloir", elle a l'id_room 0. On peut réutiliser la salle Couloir plusieurs fois dans le jeu, quand elle est implémentée dans le jeu on lui donne un id_game bien unique
+pour éviter des collisions avec d'autres "Couloir" générés plus tard. 

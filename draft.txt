@@ -1,5 +1,60 @@
 
+https://github.com/ratatui/ratatui ( lien utilise pour styliser le terminal graphique)
 (zuul_bad)
+
+barème de notation: clarté et expressivité du code 5 pts
+architecture 5 pts 
+documentation ( docstring totalité des items ) 2 pts
+efficience  2 pts
+ambition du projet 4 points
+journal de développement 2 ponts
+total de 20 sur les projets
+l'oral n'est pas évalué en soi
+
+update: 
+
+Pour nous faciliter la tache, on f dabord une premiere version sans map.
+
+- STRUCTURE DARBRE BINAIRE CAPABLE DE CONTENIR POUR CHAQUE NOEUD UNE SALLE ET SES INFOS
+- SALLE et informations ( IDENTIFANT DE SALLES QUI VONT LA SUIVRE OU NB DE SORTIES; case suivante e
+- autre structure taille fixe ou chaque case est un identifiant, le numéro de la case, on peut accéder aux autre classe,
+- obtneir la salle actuelle du joueur , choper les infos de la salle et les choix de "sortie"
+- sans retour arrière pr l'instant, " par ex chaque salle tas acces a deux salles " et donc on peut retenir les id des salles et les mettres dans le B tree ? 
+
+
+Une personne implement l'arbre binaire (Melissa)
+autre : implémentation des salles : classe salle à détailler (Benjamin pour la classe, Vishnujan pour les différents layouts)
+autre; classe Joueur ? 
+autre: grand tableau pour génerer des id unique, choisi 
+
+retravailler la méthode affichage de la carte
+generation salle  ? 
+est ce que les salles existent déjà ?
+est ce que le mot chevre ? mot ont des propriété magiques
+
+
+implémentation de la carte : ( approche de tableau de tableau inoptimal)
+toutes les cases dans un grand tableau; indice de ce grand tableau identifant unique de tuile
+fonction de conversion ; paire de cordonnées dans ce tableau? 
+( quelles sont les personnages présents)
+
+fonction de voisinage: donner les indices de voisins 
+
+pas de hashmap que des b tree si possible ?
+
+clarifie la responsabilité , qui f quoi ?
+
+problème de duplicata; 
+
+
+identifiants  de table en int ( sparse ou complet)
+b tree 
+
+structure de données contenant l'ensembles de données d'une tuile 
+
+moyen dasscoier à une tuile ou salle
+
+
 
 Premiere partie;
 
