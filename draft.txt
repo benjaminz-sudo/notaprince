@@ -1,4 +1,5 @@
 
+https://github.com/ratatui/ratatui ( lien utilise pour styliser le terminal graphique)
 (zuul_bad)
 
 barème de notation: clarté et expressivité du code 5 pts
