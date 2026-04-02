@@ -14,8 +14,15 @@ pub struct Room {
 
     // The next relative indexes this room can lead to
     next_rooms: Vec<i64>,
+
+    // String giving the name of the Room
+    name : String,
+
     //String describing the Room
     description : String,
+
+    //Set of items in the room
+    pub items : Vec<Item>, // public to make sure that the game can access it
 
 }
 // Class containing every possible room in the game.
@@ -28,11 +35,16 @@ impl Room {
             id_game: id_game.unwrap_or(-1),
             next_rooms: Vec::new(),
             description: "This room has no description here is the id_game : ".to_string()+id_game.unwrap_or(-1).to_string().as_str(),
+            name: "Unknown Room".to_string(),
+            items: Vec::new(),
         }
     }
 
     pub fn set_id_game(&mut self, new_id: i64) {
         self.id_game = new_id;
+    }
+    pub fn set_name(&mut self, new_name: String) {
+        self.name = new_name;
     }
     pub fn set_description(&mut self, new_description: String) {
         self.description = new_description;
@@ -48,9 +60,54 @@ impl Room {
             id_game: self.id_game,
             next_rooms: self.next_rooms.clone(),
             description: self.description.clone(),
+            name: self.name.clone(),
+            items: self.items.clone(),
         }
     }
 }
+
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Item {
+    Sword,
+    BigBook,
+    Potion,
+    Demon,
+    Toilet,
+    Dragon,
+}
+
+impl Item {
+    pub fn name(&self) -> &str {
+        match self {
+            Item::Sword => "Sword",
+            Item::BigBook => "Secret big book",
+            Item::Potion => "Strange potion",
+            Item::Demon => "Demon",
+            Item::Toilet => "Rupert the third emperor, the toilets that talks!",
+            Item::Dragon => "A sleepy dragoon",
+        }
+    }
+
+    pub fn look(&self) {
+        match self {
+            Item::Sword => println!("A useful sword that might be a key."),
+            Item::BigBook => println!("SECRET ROAD : BLALBLABLBLLBLALBLABLA"),
+            Item::Potion => println!("A bubbly purple potion, is it drinkable?"),
+            Item::Demon => println!("Do NOT talk to the demon"),
+            Item::Toilet => println!("You are intrigued by this particular golden toilet and they CAN talk!"),
+            Item::Dragon => println!("BIG BIG DRAGON but it is sleeping very deeply...."),
+        }
+    }
+
+    pub fn carry_able(&self) -> bool {
+        match self {
+            Item::Sword | Item::BigBook | Item::Potion => true,
+            Item::Demon | Item::Toilet | Item::Dragon => false,
+        }
+    }
+}   
+
 
 
 pub struct Game {
@@ -84,27 +141,65 @@ impl Game {
     }
 
     //Fonction qui définit les différentes salles du jeu. Chaque salle a un id_room unique et un id_game qui peut être utilisé pour les différencier dans le jeu.
-    fn define_layouts(&mut self){
-        let mut start_room = Room::new(Some(1000));
-        start_room.set_description("You are in the starting room.".to_string());
-        start_room.set_next_rooms(vec![1, 2]);
+   fn define_layouts(&mut self) {
+        // 1000 : La Prison
+        let mut prison = Room::new(Some(1000));
+        prison.set_name("Prison".to_string());
+        prison.set_description("An empty dungeon, nobody but you.".to_string());
+        prison.items.push(Item::Sword);
+        prison.items.push(Item::BigBook);
+        prison.set_next_rooms(vec![1001]); // Mène à la Salle du Trône
 
-        let room_test = Room::new(Some(1));
-        let room_test2 = Room::new(Some(2));
-        let room_tes3 = Room::new(Some(3));
-        let room_test4 = Room::new(Some(4));
-        
-        self.room_layouts.push(start_room);
-        self.room_layouts.push(room_test);
-        self.room_layouts.push(room_test2);
-        self.room_layouts.push(room_tes3);
-        self.room_layouts.push(room_test4);
+        // 1001 : Salle du Trône
+        let mut throne_room = Room::new(Some(1001));
+        throne_room.set_name("Throne Room".to_string());
+        throne_room.set_description("A majestic hall with a golden throne. (there is a big big dragoon sleeping next to the throne !)".to_string());
+        throne_room.items.push(Item::Dragon);
+        throne_room.set_next_rooms(vec![1002]); // Mène à la Chambre
 
+        // 1002 : La Chambre
+        let mut bedroom = Room::new(Some(1002));
+        bedroom.set_name("Bedroom".to_string());
+        bedroom.set_description("An empty bedroom with a double bed, nothing particular can be said.".to_string());
+        bedroom.items.push(Item::Potion);
+        bedroom.set_next_rooms(vec![1003]); // Mène à la Salle de Bain
+
+        // 1003 : Salle de Bain
+        let mut bathroom = Room::new(Some(1003));
+        bathroom.set_name("Bathroom".to_string());
+        bathroom.set_description("A basic bathroom with toilets and a shower. Huh, the golden toilets begin to stand, it has two arms and two legs. (I think he wants to talk to you.)".to_string());
+        bathroom.items.push(Item::Toilet);
+        bathroom.set_next_rooms(vec![1004]); // Mène à la Dark Room
+
+        // 1004 : Dark Room
+        let mut dark_room = Room::new(Some(1004));
+        dark_room.set_name("Dark Room".to_string());
+        dark_room.set_description("You can't see anything, but you feel a demonic presence. (do not talk to the demon)".to_string());
+        dark_room.items.push(Item::Demon);
+        dark_room.set_next_rooms(vec![1005]); // Mène au Laboratoire d'Alchimie
+
+        // 1005 : Alchemy Lab
+        let mut alchemy_lab = Room::new(Some(1005));
+        alchemy_lab.set_name("Alchemy Lab".to_string());
+        alchemy_lab.set_description("The air is thick with colorful smoke. Shelves are filled with bubbling beakers and strange ingredients.".to_string());
+        alchemy_lab.items.push(Item::Potion);
+        // C'est la dernière salle (pas de next_rooms)
+
+        // Ajout de TOUTES les salles à la liste
+        self.room_layouts.push(prison);
+        self.room_layouts.push(throne_room);
+        self.room_layouts.push(bedroom);
+        self.room_layouts.push(bathroom);
+        self.room_layouts.push(dark_room);
+        self.room_layouts.push(alchemy_lab);
+
+        // Insertion dans l'arbre du jeu
         for room in &self.room_layouts {
             self.room_tree.insert(room.id_game, room.clone());
         }
     }
 
+    // a modifier
     fn print_room_info(&self) {
         let current_room_id = self.game_rooms[self.player_position_index as usize];
         println!("You are in room with id_game: {}", current_room_id);
