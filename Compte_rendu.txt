@@ -13,4 +13,5 @@ scelle: chaine de lu'ilistaeur + un morceau de selle
   Hachage du compteur de salle: sil dit lea meme graine à deux moments differents cest différent 
 
 Augmenter la complexité combinatore: chaque salle signifiante a eds mots différents dans le dictoinnaire
-Rien qui est déterministe au lancement du jeu par le dico sans le jeu qui se répéte
+Rien qui est déterministe au lancement du jeu à part le dico sans le jeu qui se répéte
+mot du dico à l'initialisation
