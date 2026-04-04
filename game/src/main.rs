@@ -166,6 +166,20 @@ impl Game {
         self.room_layouts.push(Self::build_dark_room());
         self.room_layouts.push(Self::build_alchemy_lab());
         self.room_layouts.push(Self::build_proute_room());
+        self.room_layouts.push(Self::build_mirror_room());
+        self.room_layouts.push(Self::build_monty_hall_room());
+
+        // --- NOUVEAU : LES SALLES DE GAME OVER ---
+        // 9001 : Mort démon
+        self.room_layouts.push(Self::build_game_over_room(9001, "You tried to fight a Demonic entity with your bare hands... It ripped your soul apart."));
+        
+        // 9902 : mort MH
+        self.room_layouts.push(Self::build_game_over_room(9002, "You trusted the host and stayed with Door 1... The floor opened and you fell into a pit of poisoned spikes."));
+
+        // 9003: Mort Miroir
+        self.room_layouts.push(Self::build_game_over_room(9003, "You smashed the mirror! Seven years of bad luck instantly crushed your body."));
+
+        
 
         // Insertion in the game tree
         for room in &self.room_layouts {
@@ -226,14 +240,14 @@ impl Game {
         
         // Adding the special choices for this room
         dark.choices.push(Choice {
-            command: "run".to_string(), // Changed to English to match your game style
+            command: "run".to_string(), 
             description: "Run away, take the first door you can see".to_string(),
             target_room: 1005,
         });
         dark.choices.push(Choice {
             command: "fight".to_string(),
             description: "Fight !".to_string(),
-            target_room: 9999, // Game over room
+            target_room: 9001, // Game over room
         });
         
         dark
@@ -244,7 +258,8 @@ impl Game {
         lab.set_name("Alchemy Lab".to_string());
         lab.set_description("The air is thick with colorful smoke. Shelves are filled with bubbling beakers and strange ingredients.".to_string());
         lab.items.push(Item::Potion);
-        
+        lab.set_next_rooms(vec![1006]);
+
         lab
     }
 
@@ -253,10 +268,71 @@ impl Game {
         prout.set_name("Prout Room".to_string());
         prout.set_description("An extremely foul odor comes to your nostrils ? What is it ? No, impossible ?? You are in the LEGENDARY PROUT room !!".to_string());
         prout.items.push(Item::Toilet);
-        
+        prout.set_next_rooms(vec![1007]);
+
         prout
+
     }
 
+    fn build_mirror_room() -> Room {
+        let mut mirror = Room::new(Some(1007));
+        mirror.set_name("Mirror Room".to_string());
+        mirror.set_description("You are surrounded by countless mirrors. On the ceiling. On the ground and on the walls. Even the doors are MIRRORS. ".to_string());
+        
+        mirror.choices.push(Choice {
+            command: "smash".to_string(), 
+            description: "Smash a mirror with your fist!".to_string(),
+            target_room: 9002, // Game over : 7 years of bad luck... or you just bleed to death. -> penser à faire comment le GAME OVER ??
+        });
+
+        mirror.choices.push(Choice {
+            command: "look".to_string(),
+            description: "Look closely at your reflection... wait, it's smiling but you are not. Might be a demonic presence after all.".to_string(),
+            target_room: 1004, //
+        });
+
+        
+        mirror.choices.push(Choice {
+            command: "Contemplate".to_string(),
+            description: "Ripples of reveries, splendid look. Might be a good idea to touch it !".to_string(),
+            target_room: 1008, //
+        });
+        
+        
+        mirror
+    }
+
+
+   fn build_monty_hall_room() -> Room {
+        let mut monty = Room::new(Some(1008));
+        monty.set_name("Game Show Room".to_string());
+        monty.set_description("You are blinded by strong lights. In front of you appears a massive, cheering audience. You are on stage! The host shouts, 'Behind one of these 3 doors is an exit! Behind the other two... DEATH!'\n\nYou instinctively reach for Door 1.\n'WAIT!' the host yells. He snaps his fingers and Door 3 opens, revealing a pit of spikes.\n'I'll do you a favor,' he whispers. 'Do you want to STAY with Door 1, or SWITCH to Door 2?'".to_string());
+                
+        monty.choices.push(Choice {
+            command: "stay".to_string(), 
+            description: "Stay with Door 1. You trust your first instinct.".to_string(),
+            target_room: 9003, 
+        });
+        
+        monty.choices.push(Choice {
+            command: "switch".to_string(),
+            description: "Switch to Door 2. Maths are always TRUE!".to_string(),
+            target_room: 1005, // Ç
+        });
+        monty.set_next_rooms(vec![1007]);
+
+        monty
+    }
+    fn build_game_over_room(id_game: i64, death_reason: &str) -> Room {
+        let mut game_over = Room::new(Some(id_game));
+        game_over.set_name(" GAME OVER ".to_string());
+        
+        let full_description = format!("{}\n\nYou are dead. Type 'exit' to close the game and cry.", death_reason);
+        game_over.set_description(full_description);
+        
+        // No items, no choices, no next_rooms. The player is dead!
+        game_over
+    }
 
     pub fn play(&mut self) {
         loop {
@@ -334,7 +410,7 @@ impl Game {
 
             // If the input doesn't match anything
             if !moved {
-                println!(" You do not follow the script. Unvalid action. Please refrain from doing and do a valid action :)");
+                println!(" You do not follow the script. Unvalid action. Please refrain from doing this and do a valid action :)");
             }
         }
         println!("Exiting.");
