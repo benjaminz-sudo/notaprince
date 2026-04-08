@@ -3,6 +3,11 @@ use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicI64, Ordering};
 use std::vec;
 
+
+use kira::{AudioManager, AudioManagerSettings, DefaultBackend};
+use kira::sound::static_sound::StaticSoundData;
+
+
 // Variable globale pour l'origine (Racine)
 const ORIGINE_RACINE: i64 = 1000;
 
@@ -80,6 +85,7 @@ pub enum Item {
     Demon,
     Toilet,
     Dragon,
+    duckiebot,
 }
 
 #[derive(Debug, Clone)]
@@ -98,6 +104,8 @@ impl Item {
             Item::Demon => "Demon",
             Item::Toilet => "Rupert the third emperor, the toilets that talks!",
             Item::Dragon => "A sleepy dragoon",
+            Item::duckiebot => "A duck that drives its special vehicle",
+
         }
     }
 
@@ -109,12 +117,14 @@ impl Item {
             Item::Demon => println!("Do NOT talk to the demon"),
             Item::Toilet => println!("You are intrigued by this particular golden toilet and they CAN talk!"),
             Item::Dragon => println!("BIG BIG DRAGON but it is sleeping very deeply...."),
+            Item::duckiebot => println!("Quack, quack ! vrooooom, vroooom !."),
+
         }
     }
 
     pub fn carry_able(&self) -> bool {
         match self {
-            Item::Sword | Item::BigBook | Item::Potion => true,
+            Item::Sword | Item::BigBook | Item::Potion | Item::duckiebot => true,
             Item::Demon | Item::Toilet | Item::Dragon => false,
         }
     }
@@ -135,10 +145,13 @@ pub struct Game {
     room_tree: BTreeMap<i64, Room>,
     // the player's inventory to store picked up items
     pub inventory: Vec<Item>,
+    // audio manager
+    audio_manager: AudioManager<DefaultBackend>,
 }
 
 impl Game {
     pub fn new() -> Game {
+    let audio_manager = AudioManager::<DefaultBackend>::new(AudioManagerSettings::default()).unwrap();
         Game {
             game_rooms: Vec::new(),
             room_layouts: Vec::new(),
@@ -146,6 +159,7 @@ impl Game {
             player_position_index: 0,
             room_tree: BTreeMap::new(),
             inventory: Vec::new(),
+            audio_manager,
         }
     }
 
@@ -154,6 +168,9 @@ impl Game {
         //Starting room has id_game==1000
         self.game_rooms.push(1000);
         Self::define_layouts(self);
+        
+        let background_sound = StaticSoundData::from_file("fairy_lights.mp3").unwrap();
+        self.audio_manager.play(background_sound).unwrap();
     }
 
 // building the rooms
@@ -168,24 +185,35 @@ impl Game {
         self.room_layouts.push(Self::build_proute_room());
         self.room_layouts.push(Self::build_mirror_room());
         self.room_layouts.push(Self::build_monty_hall_room());
+        self.room_layouts.push(Self::build_red_button_room());
+        self.room_layouts.push(Self::build_duckiebot_room());
+        self.room_layouts.push(Self::build_cave());
+        self.room_layouts.push(Self::build_storage_room());
+        self.room_layouts.push(Self::build_guard_post());
+        self.room_layouts.push(Self::build_well_room());
+        self.room_layouts.push(Self::build_stone_corridor());
+        self.room_layouts.push(Self::build_waiting_room());
+        self.room_layouts.push(Self::build_servant_quarters());
+        self.room_layouts.push(Self::build_empty_room());
+        self.room_layouts.push(Self::build_iron_door_room());
 
-        // --- NOUVEAU : LES SALLES DE GAME OVER ---
-        // 9001 : Mort démon
+        // 9001 : death démon
         self.room_layouts.push(Self::build_game_over_room(9001, "You tried to fight a Demonic entity with your bare hands... It ripped your soul apart."));
         
-        // 9902 : mort MH
+        // 9902 :  MH death
         self.room_layouts.push(Self::build_game_over_room(9002, "You trusted the host and stayed with Door 1... The floor opened and you fell into a pit of poisoned spikes."));
 
-        // 9003: Mort Miroir
+        // 9003: Mirror death
         self.room_layouts.push(Self::build_game_over_room(9003, "You smashed the mirror! Seven years of bad luck instantly crushed your body."));
 
-        
+        // 9005 :Duckiebot death
+        self.room_layouts.push(Self::build_game_over_room(9011, "You start following the Duckiebots on the lane. You follow them for hours, then days. You forgot who you are. You are just a duckiebot now."));
 
         // Insertion in the game tree
         for room in &self.room_layouts {
             self.room_tree.insert(room.id_game, room.clone());
         }
-    }
+    }   
 
 
     // for scalabilty reasons, i chose to make function for the creation of each room
@@ -323,6 +351,151 @@ impl Game {
 
         monty
     }
+
+     fn build_red_button_room() -> Room {
+        let mut rb = Room::new(Some(1009));
+        rb.set_name("Weird Red Butto, Room".to_string());
+        rb.set_description("The room is empty. Duh, you can see a red button on the corner left of the room. What do you want to do ?".to_string());
+                
+        rb.choices.push(Choice {
+            command: "press".to_string(), 
+            description: "Press the button, that is what buttons are made for.".to_string(),
+            target_room: 9003, // Game Over
+        });
+        
+        rb.choices.push(Choice {
+            command: "lick".to_string(),
+            description: "Lick the button, you want to know if it tastes like strawberries.".to_string(),
+            target_room: 1005, // Jail
+        });
+
+        rb.choices.push(Choice {
+            command: "talk".to_string(),
+            description: "You feel a bit lonely and despessed and you feel like that the button is a good hearer.".to_string(),
+            target_room: 1009, // Next Room
+        });
+
+
+        rb.set_next_rooms(vec![1009]);
+
+        rb
+    }   
+    
+
+    fn build_duckiebot_room() -> Room {
+        let mut db = Room::new(Some(1010));
+        db.set_name("Duckiebot Room".to_string());
+        db.set_description("There are 6 small robots following a weird-shaped lane. Huh, ducks are driving those robots and they are also following each other ?".to_string());
+
+        db.items.push(Item::duckiebot);
+
+                
+        db.choices.push(Choice {
+            command: "Steal".to_string(), 
+            description: "You feel like that a duckiebot might be useful for your adventure.".to_string(),  
+            target_room : 1010,    
+          });
+        
+        db.choices.push(Choice {
+            command: "follow".to_string(),
+            description: " Those duckiebots seem to really have fun. Somehow, you are drawn into following them. You are now following them..".to_string(),
+            target_room: 9005, 
+        });
+
+        db.choices.push(Choice {
+            command: "quack".to_string(),
+            description: "You want to be the seventh duck and you want to quack".to_string(),
+            target_room : 1010,    
+
+        });
+
+
+        db.set_next_rooms(vec![1010]);
+
+        db
+    }   
+    
+    fn build_kitchen() -> Room {
+        let mut room = Room::new(Some(1011));
+        room.set_name("Disgusting Kitchen".to_string());
+        room.set_description("The smell of rotten meat hits you. There are huge pots filled with a suspicious green stew bubbling on a fire.".to_string());
+        room.set_next_rooms(vec![1012]); // Mène à la Bibliothèque
+        room
+    }
+
+    fn build_cave() -> Room {
+        let mut room = Room::new(Some(1029));
+        room.set_name("Dark Cave".to_string());
+        room.set_description("A damp stone cave. Water drips from the ceiling.".to_string());
+        room.set_next_rooms(vec![1030]);
+        room
+    }
+
+    fn build_storage_room() -> Room {
+        let mut room = Room::new(Some(1030));
+        room.set_name("Storage Room".to_string());
+        room.set_description("A small room filled with empty wooden crates.".to_string());
+        room.set_next_rooms(vec![1031]);
+        room
+    }
+
+    fn build_guard_post() -> Room {
+        let mut room = Room::new(Some(1031));
+        room.set_name("Guard Post".to_string());
+        room.set_description("A simple room with a single chair and a cold fireplace.".to_string());
+        room.set_next_rooms(vec![1032]);
+        room
+    }
+
+    fn build_well_room() -> Room {
+        let mut room = Room::new(Some(1032));
+        room.set_name("Well Room".to_string());
+        room.set_description("A circular room with an old, dry stone well in the center.".to_string());
+        room.set_next_rooms(vec![1033]);
+        room
+    }
+
+    fn build_stone_corridor() -> Room {
+        let mut room = Room::new(Some(1033));
+        room.set_name("Stone Corridor".to_string());
+        room.set_description("A long, featureless stone corridor. It is very quiet.".to_string());
+        room.set_next_rooms(vec![1034]);
+        room
+    }
+
+    fn build_waiting_room() -> Room {
+        let mut room = Room::new(Some(1034));
+        room.set_name("Waiting Room".to_string());
+        room.set_description("A dusty room with a few broken wooden benches.".to_string());
+        room.set_next_rooms(vec![1035]);
+        room
+    }
+
+    fn build_servant_quarters() -> Room {
+        let mut room = Room::new(Some(1035));
+        room.set_name("Servant's Quarters".to_string());
+        room.set_description("A cramped room with a tiny straw bed in the corner.".to_string());
+        room.set_next_rooms(vec![1036]);
+        room
+    }
+
+    fn build_empty_room() -> Room {
+        let mut room = Room::new(Some(1036));
+        room.set_name("Empty Room".to_string());
+        room.set_description("There is absolutely nothing in this room. Just bare walls.".to_string());
+        room.set_next_rooms(vec![1037]);
+        room
+    }
+
+    fn build_iron_door_room() -> Room {
+        let mut room = Room::new(Some(1037));
+        room.set_name("Iron Door Room".to_string());
+        room.set_description("A solid iron door blocks the way. It is heavily rusted.".to_string());
+        // Pas de set_next_rooms ici, c'est la fin temporaire de ce chemin
+        room
+    }
+
+
     fn build_game_over_room(id_game: i64, death_reason: &str) -> Room {
         let mut game_over = Room::new(Some(id_game));
         game_over.set_name(" GAME OVER ".to_string());
