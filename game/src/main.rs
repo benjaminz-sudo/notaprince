@@ -144,7 +144,7 @@ pub fn levenshtein_distance(word_a: &str, word_b: &str) -> usize {
     matrix[len_a][len_b]
 }
 
-/// Vérifie si le mot est proche d'un mot spécial (distance = 1)
+/// Vérifie si le mot est proche d'un mot spécial 
 /// et retourne un message d'ambiance si c'est le cas.
 ///
 /// # Arguments
@@ -231,23 +231,29 @@ impl Game {
     /// en fonction du mot qu'il entre.
     /// Si le mot est spécial on redirige vers une salle signifiante.
     /// Sinon vers la salle générée procéduralement depuis la seed.
-    fn move_with_word(&mut self, word: &str) {
-        let seed = word_to_seed(word, self.room_counter);
-        self.room_counter += 1;
 
-        if is_special_word(word, &self.special_words) {
-            println!("Le mot '{}' résonne dans le couloir...", word);
-            // TODO: brancher vers la salle spéciale correspondante
-        } else {
-            let description = generate_room_description(seed);
-            let new_id = self.room_counter as i64;
-            let mut new_room = Room::new(Some(new_id));
-            new_room.set_description(description);
-            self.room_map.insert(new_id, new_room);
-            self.visited_room_ids.push(new_id);
-            self.player_position_index += 1;
-        }
+    fn move_with_word(&mut self, word: &str) {
+    let seed = word_to_seed(word, self.room_counter);
+    self.room_counter += 1;
+
+    // indice si le joueur est proche d'un mot spécial sans le trouver
+    if let Some(hint) = check_proximity_hint(word, &self.special_words) {
+        println!("{}", hint);
     }
+
+    if is_special_word(word, &self.special_words) {
+        println!("Le mot '{}' résonne dans le couloir...", word);
+        /// TODO: brancher vers la salle spéciale correspondante
+    } else {
+        let description = generate_room_description(seed);
+        let new_id = self.room_counter as i64;
+        let mut new_room = Room::new(Some(new_id));
+        new_room.set_description(description);
+        self.room_map.insert(new_id, new_room);
+        self.visited_room_ids.push(new_id);
+        self.player_position_index += 1;
+    }
+}
 
     /// Boucle principale du jeu. Le joueur entre des mots pour avancer.
     /// Commandes : `exit` pour quitter, n'importe quel mot pour avancer.
