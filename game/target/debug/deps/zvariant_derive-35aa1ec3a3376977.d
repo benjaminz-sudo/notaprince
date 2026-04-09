@@ -1,0 +1,11 @@
+/home/tefitm/Documents/GitHub/notaprince/game/target/debug/deps/zvariant_derive-35aa1ec3a3376977.d: /home/tefitm/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zvariant_derive-5.10.0/src/lib.rs /home/tefitm/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zvariant_derive-5.10.0/src/dict.rs /home/tefitm/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zvariant_derive-5.10.0/src/signature.rs /home/tefitm/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zvariant_derive-5.10.0/src/type.rs /home/tefitm/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zvariant_derive-5.10.0/src/utils.rs /home/tefitm/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zvariant_derive-5.10.0/src/value.rs /home/tefitm/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zvariant_derive-5.10.0/src/../README.md
+
+/home/tefitm/Documents/GitHub/notaprince/game/target/debug/deps/libzvariant_derive-35aa1ec3a3376977.so: /home/tefitm/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zvariant_derive-5.10.0/src/lib.rs /home/tefitm/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zvariant_derive-5.10.0/src/dict.rs /home/tefitm/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zvariant_derive-5.10.0/src/signature.rs /home/tefitm/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zvariant_derive-5.10.0/src/type.rs /home/tefitm/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zvariant_derive-5.10.0/src/utils.rs /home/tefitm/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zvariant_derive-5.10.0/src/value.rs /home/tefitm/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zvariant_derive-5.10.0/src/../README.md
+
+/home/tefitm/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zvariant_derive-5.10.0/src/lib.rs:
+/home/tefitm/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zvariant_derive-5.10.0/src/dict.rs:
+/home/tefitm/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zvariant_derive-5.10.0/src/signature.rs:
+/home/tefitm/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zvariant_derive-5.10.0/src/type.rs:
+/home/tefitm/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zvariant_derive-5.10.0/src/utils.rs:
+/home/tefitm/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zvariant_derive-5.10.0/src/value.rs:
+/home/tefitm/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zvariant_derive-5.10.0/src/../README.md:

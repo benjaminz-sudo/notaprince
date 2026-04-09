@@ -112,6 +112,64 @@ pub fn generate_room_description(seed: u64) -> String {
     ambiances[index].to_string()
 }
 
+
+
+/// Calcule la distance de Levenshtein entre deux mots.
+///
+/// # Arguments
+/// * `word_a` - Premier mot
+/// * `word_b` - Deuxième mot
+pub fn levenshtein_distance(word_a: &str, word_b: &str) -> usize {
+    let chars_a: Vec<char> = word_a.chars().collect();
+    let chars_b: Vec<char> = word_b.chars().collect();
+    let len_a = chars_a.len();
+    let len_b = chars_b.len();
+
+    // matrice de distances, chaque case vaut un coût minimum pour
+    // transformer les i premiers caractères de word_a en j premiers de word_b
+    let mut matrix = vec![vec![0usize; len_b + 1]; len_a + 1];
+
+    for i in 0..=len_a { matrix[i][0] = i; }
+    for j in 0..=len_b { matrix[0][j] = j; }
+
+    for i in 1..=len_a {
+        for j in 1..=len_b {
+            // si les lettres sont identiques, pas de coût supplémentaire
+            let cost = if chars_a[i-1] == chars_b[j-1] { 0 } else { 1 };
+            matrix[i][j] = (matrix[i-1][j] + 1)
+                .min(matrix[i][j-1] + 1)
+                .min(matrix[i-1][j-1] + cost);
+        }
+    }
+    matrix[len_a][len_b]
+}
+
+/// Vérifie si le mot est proche d'un mot spécial (distance = 1)
+/// et retourne un message d'ambiance si c'est le cas.
+///
+/// # Arguments
+/// * `word` - Le mot entré par le joueur
+/// * `special_words` - Les mots spéciaux de cette partie
+pub fn check_proximity_hint(word: &str, special_words: &[String]) -> Option<&'static str> {
+    let hints = [
+        "Quelque chose vibre dans l'air...",
+        "Un frisson parcourt tes doigts.",
+        "L'atmosphère change imperceptiblement.",
+        "Tu sens que tu brûles...",
+    ];
+
+    let is_close = special_words
+        .iter()
+        .any(|special| levenshtein_distance(word, special) == 1);
+
+    if is_close {
+        // on varie le message selon la longueur du mot pour moins de répétition
+        Some(hints[word.len() % hints.len()])
+    } else {
+        None
+    }
+}
+
 /// Structure principale du jeu, contenant l'état complet d'une partie :
 /// les salles visitées, les layouts disponibles, et la position du joueur.
 pub struct Game {
