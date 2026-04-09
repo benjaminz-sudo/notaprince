@@ -239,7 +239,7 @@ impl Game {
     // indice si le joueur est proche d'un mot spécial sans le trouver
     if let Some(hint) = check_proximity_hint(word, &self.special_words) {
         println!("{}", hint);
-    }
+    } 
 
     if is_special_word(word, &self.special_words) {
         println!("Le mot '{}' résonne dans le couloir...", word);
