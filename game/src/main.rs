@@ -243,7 +243,7 @@ impl Game {
 
     if is_special_word(word, &self.special_words) {
         println!("Le mot '{}' résonne dans le couloir...", word);
-        /// TODO: brancher vers la salle spéciale correspondante
+        // TODO: brancher vers la salle spéciale correspondante
     } else {
         let description = generate_room_description(seed);
         let new_id = self.room_counter as i64;
