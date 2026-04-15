@@ -1,4 +1,6 @@
 use rand::prelude::*;
+use rand::rngs::StdRng;
+use rand::SeedableRng;
 use std::collections::BTreeMap;
 use std::io::{self, Write};
 use colored::*;
@@ -325,14 +327,19 @@ impl Game {
         self.room_map.insert(id, room);
     }
 
-    fn generate_procedural_room(&mut self) -> Room {
+    fn generate_procedural_room_from_seed(&mut self, seed: &str) -> Room {
         let id = self.next_procedural_id;
         self.next_procedural_id += 1;
 
         let name = "Stone Chamber".to_string();
         let description = "A nondescript stone room. The walls are damp and cold. There are passages leading away.".to_string();
 
-        let mut rng = rand::thread_rng();
+        // Deterministic RNG from the seed word
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        std::hash::Hash::hash(&seed, &mut hasher);
+        let hash = std::hash::Hasher::finish(&hasher);
+        let mut rng = StdRng::seed_from_u64(hash);
+
         let item_count = rng.gen_range(1..=2);
         let possible_items = [
             Item::ThroneScale,
@@ -348,7 +355,8 @@ impl Game {
         ];
         let mut items = Vec::new();
         for _ in 0..item_count {
-            items.push(possible_items[rng.gen_range(0..possible_items.len())].clone());
+            let idx = rng.gen_range(0..possible_items.len());
+            items.push(possible_items[idx].clone());
         }
 
         let mut room = Room::new(Some(id));
@@ -368,7 +376,7 @@ impl Game {
         let target_id = if let Some(&room_id) = self.special_word_to_room_id.get(&seed) {
             room_id
         } else {
-            let new_room = self.generate_procedural_room();
+            let new_room = self.generate_procedural_room_from_seed(&seed);
             let new_id = new_room.id_game;
             self.room_map.insert(new_id, new_room);
             new_id
