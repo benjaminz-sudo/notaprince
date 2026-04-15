@@ -1,16 +1,60 @@
 use rand::Rng;
-use rand::SeedableRng;
-use rand::rngs::StdRng;
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicI64, Ordering};
 
 /// Identifiant de la salle de départ, séparé des salles normales
-/// pour éviter les  collision avec les IDs générés 
+/// pour éviter les collisions avec les IDs générés
 const STARTING_ROOM_ID: i64 = 1000;
 
-/// Compteur global auto-incrémenté pour attribuer un ID unique
-/// à chaque instance de Room créée, indépendamment du thread.
+// on commence à 1000 pour pas écraser les IDs normaux (0, 1, 2...)
 static NEXT_ROOM_INSTANCE_ID: AtomicI64 = AtomicI64::new(0);
+
+/// Items que le joueur peut trouver dans les salles.
+/// Certains sont ramassables, d'autres non.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Item {
+    Sword,
+    BigBook,
+    Potion,
+    Demon,
+    Toilet,
+    Dragon,
+    Duckiebot,
+}
+
+impl Item {
+    /// Retourne le nom affichable de l'item.
+    pub fn name(&self) -> &str {
+        match self {
+            Item::Sword => "Sword",
+            Item::BigBook => "Secret big book",
+            Item::Potion => "Strange potion",
+            Item::Demon => "Demon",
+            Item::Toilet => "Rupert the third emperor, the toilets that talks!",
+            Item::Dragon => "A sleepy dragon",
+            Item::Duckiebot => "A duck that drives its special vehicle",
+        }
+    }
+
+    /// Indique si l'item peut être ramassé par le joueur.
+    pub fn carry_able(&self) -> bool {
+        match self {
+            Item::Sword | Item::BigBook | Item::Potion | Item::Duckiebot => true,
+            Item::Demon | Item::Toilet | Item::Dragon => false,
+        }
+    }
+}
+
+/// Représente un choix proposé au joueur dans certaines salles spéciales.
+#[derive(Debug, Clone)]
+pub struct Choice {
+    /// Commande que le joueur doit taper
+    pub command: String,
+    /// Description affichée au joueur
+    pub description: String,
+    /// game_id de la salle vers laquelle ce choix mène
+    pub target_room: i64,
+}
 
 /// Représente une salle du donjon, qu'elle soit spéciale (hardcodée)
 /// ou générée procéduralement depuis une seed.
@@ -21,24 +65,38 @@ pub struct Room {
     game_id: i64,
     /// Liste des game_id des salles accessibles depuis celle-ci
     next_room_ids: Vec<i64>,
+    /// Nom court affiché en en-tête
+    name: String,
     /// Texte affiché au joueur quand il entre dans la salle
     description: String,
+    /// Items présents dans la salle
+    pub items: Vec<Item>,
+    /// Choix spéciaux proposés au joueur dans cette salle
+    pub choices: Vec<Choice>,
 }
 
 impl Room {
     /// Crée une nouvelle salle avec un ID de jeu optionnel.
-    /// Si aucun ID n'est fourni, la salle est considérée non placée 
+    /// Si aucun ID n'est fourni, la salle est considérée non placée
     pub fn new(game_id: Option<i64>) -> Room {
         let resolved_id = game_id.unwrap_or(-1);
         Room {
             instance_id: NEXT_ROOM_INSTANCE_ID.fetch_add(1, Ordering::SeqCst),
             game_id: resolved_id,
             next_room_ids: Vec::new(),
+            name: "Salle inconnue".to_string(),
             description: format!(
                 "Cette salle n'a pas de description. (game_id: {})",
                 resolved_id
             ),
+            items: Vec::new(),
+            choices: Vec::new(),
         }
+    }
+
+    /// Remplace le nom court de la salle.
+    pub fn set_name(&mut self, new_name: String) {
+        self.name = new_name;
     }
 
     /// Remplace la description affichée au joueur.
@@ -57,7 +115,10 @@ impl Room {
             instance_id: self.instance_id,
             game_id: self.game_id,
             next_room_ids: self.next_room_ids.clone(),
+            name: self.name.clone(),
             description: self.description.clone(),
+            items: self.items.clone(),
+            choices: self.choices.clone(),
         }
     }
 }
@@ -74,10 +135,14 @@ impl Room {
 /// # Returns
 /// Une seed `u64` unique à ce mot + cette position dans le donjon
 pub fn word_to_seed(word: &str, room_counter: u64) -> u64 {
+    // on additionne les valeurs ASCII de chaque lettre avec XOR
+    // ex: "lune" → 108 ^ 117 ^ 110 ^ 101
     let xor_value: u64 = word
         .bytes()
         .fold(0u64, |accumulator, byte| accumulator ^ (byte as u64));
 
+    // le grand nombre ici c'est une constante classique de LCG (générateur linéaire)
+    // ça disperse bien les valeurs proches pour éviter les collisions
     xor_value
         .wrapping_mul(6364136223846793005)
         .wrapping_add(room_counter)
@@ -91,6 +156,7 @@ pub fn word_to_seed(word: &str, room_counter: u64) -> u64 {
 /// * `word` - Le mot entré par le joueur
 /// * `special_words` - Les mots spéciaux de cette partie
 pub fn is_special_word(word: &str, special_words: &[String]) -> bool {
+    // any() s'arrête dès qu'il trouve une correspondance
     special_words.iter().any(|special| special == word)
 }
 
@@ -108,13 +174,13 @@ pub fn generate_room_description(seed: u64) -> String {
         "Une impasse. La poussière indique que personne n'est passé depuis longtemps.",
         "Une alcôve sombre. Tu sens une présence... mais il n'y a rien.",
     ];
+    // modulo sur la seed pour rester dans les bornes du tableau
     let index = (seed % ambiances.len() as u64) as usize;
     ambiances[index].to_string()
 }
 
-
-
 /// Calcule la distance de Levenshtein entre deux mots.
+/// Distance 0 = identiques, distance 1 = une lettre différente.
 ///
 /// # Arguments
 /// * `word_a` - Premier mot
@@ -144,7 +210,7 @@ pub fn levenshtein_distance(word_a: &str, word_b: &str) -> usize {
     matrix[len_a][len_b]
 }
 
-/// Vérifie si le mot est proche d'un mot spécial 
+/// Vérifie si le mot est proche d'un mot spécial (distance = 1)
 /// et retourne un message d'ambiance si c'est le cas.
 ///
 /// # Arguments
@@ -170,10 +236,9 @@ pub fn check_proximity_hint(word: &str, special_words: &[String]) -> Option<&'st
     }
 }
 
-/// Structure principale du jeu, contenant l'état complet d'une partie :
-/// les salles visitées, les layouts disponibles, et la position du joueur.
+/// Structure principale du jeu, contenant l'état complet d'une partie.
 pub struct Game {
-    /// Historique des game_id visités par le joueur 
+    /// Historique des game_id visités par le joueur
     visited_room_ids: Vec<i64>,
     /// Index du joueur dans visited_room_ids
     player_position_index: usize,
@@ -183,6 +248,10 @@ pub struct Game {
     room_counter: u64,
     /// Mots spéciaux tirés à l'initialisation ouvrent des salles signifiantes
     special_words: Vec<String>,
+    /// Relie chaque mot spécial à un game_id de salle signifiante
+    special_word_to_room_id: BTreeMap<String, i64>,
+    /// Inventaire du joueur
+    pub inventory: Vec<Item>,
 }
 
 impl Game {
@@ -194,6 +263,8 @@ impl Game {
             room_map: BTreeMap::new(),
             room_counter: 0,
             special_words: Vec::new(),
+            special_word_to_room_id: BTreeMap::new(),
+            inventory: Vec::new(),
         }
     }
 
@@ -203,67 +274,215 @@ impl Game {
         self.visited_room_ids.push(STARTING_ROOM_ID);
         self.special_words = pick_special_words();
         self.define_special_rooms();
+        self.bind_special_words();
     }
 
-    /// Hardcode les salles spéciales du jeu et les insère dans la room_map.
+    /// Relie les 5 mots spéciaux tirés aux salles de Vishnujan.
+    /// Chaque mot ouvre une salle différente de façon déterministe.
+    fn bind_special_words(&mut self) {
+        // les game_id correspondent aux salles hardcodées de Vishnujan
+        let special_room_ids = [1001, 1002, 1003, 1004, 1005];
+        for (index, word) in self.special_words.iter().enumerate() {
+            self.special_word_to_room_id
+                .insert(word.clone(), special_room_ids[index]);
+        }
+    }
+
+    /// Insère les salles spéciales hardcodées dans la room_map.
     fn define_special_rooms(&mut self) {
+        // salle de départ fixe, toujours la même peu importe la seed
         let mut start_room = Room::new(Some(STARTING_ROOM_ID));
+        start_room.set_name("Prison".to_string());
         start_room.set_description(
             "Tu te réveilles dans une prison. Une épée et un vieux livre traînent au sol."
                 .to_string(),
         );
-        start_room.set_next_room_ids(vec![1, 2]);
+        start_room.items.push(Item::Sword);
+        start_room.items.push(Item::BigBook);
         self.room_map.insert(STARTING_ROOM_ID, start_room);
+
+        // salle du trône
+        let mut throne = Room::new(Some(1001));
+        throne.set_name("Throne Room".to_string());
+        throne.set_description(
+            "Une salle majestueuse avec un trône doré. Un énorme dragon dort juste à côté !"
+                .to_string(),
+        );
+        throne.items.push(Item::Dragon);
+        self.room_map.insert(1001, throne);
+
+        // chambre
+        let mut bedroom = Room::new(Some(1002));
+        bedroom.set_name("Bedroom".to_string());
+        bedroom.set_description(
+            "Une chambre vide avec un lit double. Une étrange potion violette traîne au sol."
+                .to_string(),
+        );
+        bedroom.items.push(Item::Potion);
+        self.room_map.insert(1002, bedroom);
+
+        // salle de bain
+        let mut bathroom = Room::new(Some(1003));
+        bathroom.set_name("Bathroom".to_string());
+        bathroom.set_description(
+            "Une salle de bain basique... sauf que les toilettes dorées se lèvent et veulent te parler."
+                .to_string(),
+        );
+        bathroom.items.push(Item::Toilet);
+        self.room_map.insert(1003, bathroom);
+
+        // salle sombre avec démon — choix obligatoire
+        let mut dark = Room::new(Some(1004));
+        dark.set_name("Dark Room".to_string());
+        dark.set_description(
+            "L'obscurité totale. Tu ressens une forte présence démoniaque. Ne lui parle pas."
+                .to_string(),
+        );
+        dark.items.push(Item::Demon);
+        dark.choices.push(Choice {
+            command: "run".to_string(),
+            description: "Fuir, prendre la première porte visible.".to_string(),
+            target_room: 1005,
+        });
+        dark.choices.push(Choice {
+            command: "fight".to_string(),
+            description: "Se battre contre le démon !".to_string(),
+            target_room: 9001,
+        });
+        self.room_map.insert(1004, dark);
+
+        // labo d'alchimie
+        let mut lab = Room::new(Some(1005));
+        lab.set_name("Alchemy Lab".to_string());
+        lab.set_description(
+            "L'air est épais de fumée colorée. Les étagères débordent de béchers bouillonnants."
+                .to_string(),
+        );
+        lab.items.push(Item::Potion);
+        self.room_map.insert(1005, lab);
+
+        // game over démon
+        let mut game_over_demon = Room::new(Some(9001));
+        game_over_demon.set_name("GAME OVER".to_string());
+        game_over_demon.set_description(
+            "Tu as essayé de combattre une entité démoniaque à mains nues... Elle a déchiré ton âme.\n\nTu es mort. Tape 'exit' pour quitter."
+                .to_string(),
+        );
+        self.room_map.insert(9001, game_over_demon);
     }
 
     /// Affiche les informations de la salle courante au joueur.
     fn print_current_room(&self) {
         let current_id = self.visited_room_ids[self.player_position_index];
-        println!("\n--- Salle {} ---", current_id);
         if let Some(room) = self.room_map.get(&current_id) {
+            println!("\n=== {} ===", room.name);
             println!("{}", room.description);
+
+            // affiche les items au sol
+            if !room.items.is_empty() {
+                println!("\nAu sol :");
+                for item in &room.items {
+                    println!("  - {}", item.name());
+                }
+            }
+
+            // affiche les choix disponibles
+            if !room.choices.is_empty() {
+                println!("\nQue fais-tu ?");
+                for choice in &room.choices {
+                    println!("  '{}' → {}", choice.command, choice.description);
+                }
+            }
         } else {
-            println!("[Salle inconnue]");
+            // ne devrait pas arriver mais on gère quand même
+            println!("[Salle inconnue — game_id: {}]", current_id);
         }
     }
 
-    /// Tente de faire avancer le joueur dans une salle
-    /// en fonction du mot qu'il entre.
-    /// Si le mot est spécial on redirige vers une salle signifiante.
-    /// Sinon vers la salle générée procéduralement depuis la seed.
-
+    /// Tente de faire avancer le joueur selon le mot ou la commande entrée.
+    /// Mot spécial → salle signifiante de Vishnujan.
+    /// Commande de choix → suit le choix de la salle actuelle.
+    /// Sinon → génération procédurale depuis la seed.
     fn move_with_word(&mut self, word: &str) {
-    let seed = word_to_seed(word, self.room_counter);
-    self.room_counter += 1;
+        let current_id = self.visited_room_ids[self.player_position_index];
 
-    // indice si le joueur est proche d'un mot spécial sans le trouver
-    if let Some(hint) = check_proximity_hint(word, &self.special_words) {
-        println!("{}", hint);
-    } 
+        // vérifie d'abord si c'est un choix de la salle actuelle
+        if let Some(room) = self.room_map.get(&current_id) {
+            let target = room.choices.iter()
+                .find(|choice| choice.command == word)
+                .map(|choice| choice.target_room);
 
-    if is_special_word(word, &self.special_words) {
-        println!("Le mot '{}' résonne dans le couloir...", word);
-        // TODO: brancher vers la salle spéciale correspondante
-    } else {
-        let description = generate_room_description(seed);
-        let new_id = self.room_counter as i64;
-        let mut new_room = Room::new(Some(new_id));
-        new_room.set_description(description);
-        self.room_map.insert(new_id, new_room);
-        self.visited_room_ids.push(new_id);
-        self.player_position_index += 1;
+            if let Some(target_id) = target {
+                self.visited_room_ids.push(target_id);
+                self.player_position_index += 1;
+                return;
+            }
+        }
+
+        // commande inventaire
+        if word == "inventory" || word == "inv" {
+            if self.inventory.is_empty() {
+                println!("Ton inventaire est vide.");
+            } else {
+                println!("Tu portes :");
+                for item in &self.inventory {
+                    println!("  - {}", item.name());
+                }
+            }
+            return;
+        }
+
+        // commande take
+        if word == "take" {
+            if let Some(room) = self.room_map.get_mut(&current_id) {
+                let found = room.items.iter().position(|item| item.carry_able());
+                if let Some(index) = found {
+                    let picked = room.items.remove(index);
+                    println!("Tu ramasses : {}", picked.name());
+                    self.inventory.push(picked);
+                } else {
+                    println!("Rien de ramassable ici.");
+                }
+            }
+            return;
+        }
+
+        let seed = word_to_seed(word, self.room_counter);
+        self.room_counter += 1;
+
+        // indice si le joueur est proche d'un mot spécial sans le trouver
+        if let Some(hint) = check_proximity_hint(word, &self.special_words) {
+            println!("{}", hint);
+        }
+
+        if is_special_word(word, &self.special_words) {
+            // on récupère le game_id associé à ce mot spécial
+            if let Some(&target_id) = self.special_word_to_room_id.get(word) {
+                println!("Le mot '{}' résonne dans le couloir...", word);
+                self.visited_room_ids.push(target_id);
+                self.player_position_index += 1;
+            }
+        } else {
+            let description = generate_room_description(seed);
+            let new_id = self.room_counter as i64;
+            let mut new_room = Room::new(Some(new_id));
+            new_room.set_description(description);
+            self.room_map.insert(new_id, new_room);
+            self.visited_room_ids.push(new_id);
+            self.player_position_index += 1;
+        }
     }
-}
 
     /// Boucle principale du jeu. Le joueur entre des mots pour avancer.
     /// Commandes : `exit` pour quitter, n'importe quel mot pour avancer.
     pub fn play(&mut self) {
-        println!("=== Not a Prince ===");
-        println!("Mots spéciaux de cette partie (debug) : {:?}", self.special_words);
+        println!("{:^40}", "=== Not a Prince ===");
+        // affiché uniquement en debug, à retirer pour la version finale
+        println!("Mots spéciaux (debug) : {:?}", self.special_words);
 
         loop {
             self.print_current_room();
-            println!("\nEntre un mot pour avancer (ou 'exit') :");
+            println!("\nEntre un mot ou une commande ('inventory', 'take', 'exit') :");
 
             let mut input = String::new();
             std::io::stdin()
@@ -302,7 +521,7 @@ pub fn pick_special_words() -> Vec<String> {
         .map(|w| w.to_string())
         .collect();
 
-    // Mélange et prend les 5 premiers
+    // shuffle maison plutôt que d'importer shuffle de rand
     for i in (1..picked.len()).rev() {
         let j = rng.gen_range(0..=i);
         picked.swap(i, j);
