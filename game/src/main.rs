@@ -494,13 +494,13 @@ impl Game {
                 // découpage vertical : salle en haut, messages en bas
                 let vertical = Layout::default()
                     .direction(Direction::Vertical)
-                    .constraints([Constraint::Percentage(70), Constraint::Percentage(30)])
+                    .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
                     .split(area);
 
                 // découpage horizontal du haut : salle à gauche, inventaire à droite
                 let horizontal = Layout::default()
                     .direction(Direction::Horizontal)
-                    .constraints([Constraint::Percentage(70), Constraint::Percentage(30)])
+                    .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
                     .split(vertical[0]);
 
                 // panneau salle (gauche)
