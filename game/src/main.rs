@@ -1,6 +1,20 @@
 use rand::Rng;
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicI64, Ordering};
+use colored::Colorize;
+use ratatui::{
+    backend::CrosstermBackend,
+    layout::{Constraint, Direction, Layout},
+    style::{Color, Modifier, Style},
+    text::{Line, Span},
+    widgets::{Block, Borders, List, ListItem, Paragraph},
+    Terminal,
+};
+use crossterm::{
+    execute,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+};
+use std::io;
 
 /// Identifiant de la salle de départ, séparé des salles normales
 /// pour éviter les collisions avec les IDs générés
@@ -252,6 +266,8 @@ pub struct Game {
     special_word_to_room_id: BTreeMap<String, i64>,
     /// Inventaire du joueur
     pub inventory: Vec<Item>,
+    /// Messages à afficher dans le panneau du bas (historique)
+    messages: Vec<String>,
 }
 
 impl Game {
@@ -265,6 +281,7 @@ impl Game {
             special_words: Vec::new(),
             special_word_to_room_id: BTreeMap::new(),
             inventory: Vec::new(),
+            messages: Vec::new(),
         }
     }
 
@@ -275,6 +292,9 @@ impl Game {
         self.special_words = pick_special_words();
         self.define_special_rooms();
         self.bind_special_words();
+        self.messages.push(format!(
+            "Mots spéciaux (debug) : {:?}", self.special_words
+        ));
     }
 
     /// Relie les 5 mots spéciaux tirés aux salles de Vishnujan.
@@ -294,8 +314,7 @@ impl Game {
         let mut start_room = Room::new(Some(STARTING_ROOM_ID));
         start_room.set_name("Prison".to_string());
         start_room.set_description(
-            "Tu te réveilles dans une prison. Une épée et un vieux livre traînent au sol."
-                .to_string(),
+            "Tu te réveilles dans une prison. Une épée et un vieux livre traînent au sol.".to_string(),
         );
         start_room.items.push(Item::Sword);
         start_room.items.push(Item::BigBook);
@@ -305,8 +324,7 @@ impl Game {
         let mut throne = Room::new(Some(1001));
         throne.set_name("Throne Room".to_string());
         throne.set_description(
-            "Une salle majestueuse avec un trône doré. Un énorme dragon dort juste à côté !"
-                .to_string(),
+            "Une salle majestueuse avec un trône doré. Un énorme dragon dort juste à côté !".to_string(),
         );
         throne.items.push(Item::Dragon);
         self.room_map.insert(1001, throne);
@@ -315,8 +333,7 @@ impl Game {
         let mut bedroom = Room::new(Some(1002));
         bedroom.set_name("Bedroom".to_string());
         bedroom.set_description(
-            "Une chambre vide avec un lit double. Une étrange potion violette traîne au sol."
-                .to_string(),
+            "Une chambre vide avec un lit double. Une étrange potion violette traîne au sol.".to_string(),
         );
         bedroom.items.push(Item::Potion);
         self.room_map.insert(1002, bedroom);
@@ -325,8 +342,7 @@ impl Game {
         let mut bathroom = Room::new(Some(1003));
         bathroom.set_name("Bathroom".to_string());
         bathroom.set_description(
-            "Une salle de bain basique... sauf que les toilettes dorées se lèvent et veulent te parler."
-                .to_string(),
+            "Une salle de bain basique... sauf que les toilettes dorées se lèvent et veulent te parler.".to_string(),
         );
         bathroom.items.push(Item::Toilet);
         self.room_map.insert(1003, bathroom);
@@ -335,8 +351,7 @@ impl Game {
         let mut dark = Room::new(Some(1004));
         dark.set_name("Dark Room".to_string());
         dark.set_description(
-            "L'obscurité totale. Tu ressens une forte présence démoniaque. Ne lui parle pas."
-                .to_string(),
+            "L'obscurité totale. Tu ressens une forte présence démoniaque. Ne lui parle pas.".to_string(),
         );
         dark.items.push(Item::Demon);
         dark.choices.push(Choice {
@@ -355,8 +370,7 @@ impl Game {
         let mut lab = Room::new(Some(1005));
         lab.set_name("Alchemy Lab".to_string());
         lab.set_description(
-            "L'air est épais de fumée colorée. Les étagères débordent de béchers bouillonnants."
-                .to_string(),
+            "L'air est épais de fumée colorée. Les étagères débordent de béchers bouillonnants.".to_string(),
         );
         lab.items.push(Item::Potion);
         self.room_map.insert(1005, lab);
@@ -365,38 +379,9 @@ impl Game {
         let mut game_over_demon = Room::new(Some(9001));
         game_over_demon.set_name("GAME OVER".to_string());
         game_over_demon.set_description(
-            "Tu as essayé de combattre une entité démoniaque à mains nues... Elle a déchiré ton âme.\n\nTu es mort. Tape 'exit' pour quitter."
-                .to_string(),
+            "Tu as essayé de combattre une entité démoniaque à mains nues... Elle a déchiré ton âme.\n\nTu es mort. Tape 'exit' pour quitter.".to_string(),
         );
         self.room_map.insert(9001, game_over_demon);
-    }
-
-    /// Affiche les informations de la salle courante au joueur.
-    fn print_current_room(&self) {
-        let current_id = self.visited_room_ids[self.player_position_index];
-        if let Some(room) = self.room_map.get(&current_id) {
-            println!("\n=== {} ===", room.name);
-            println!("{}", room.description);
-
-            // affiche les items au sol
-            if !room.items.is_empty() {
-                println!("\nAu sol :");
-                for item in &room.items {
-                    println!("  - {}", item.name());
-                }
-            }
-
-            // affiche les choix disponibles
-            if !room.choices.is_empty() {
-                println!("\nQue fais-tu ?");
-                for choice in &room.choices {
-                    println!("  '{}' → {}", choice.command, choice.description);
-                }
-            }
-        } else {
-            // ne devrait pas arriver mais on gère quand même
-            println!("[Salle inconnue — game_id: {}]", current_id);
-        }
     }
 
     /// Tente de faire avancer le joueur selon le mot ou la commande entrée.
@@ -422,11 +407,11 @@ impl Game {
         // commande inventaire
         if word == "inventory" || word == "inv" {
             if self.inventory.is_empty() {
-                println!("Ton inventaire est vide.");
+                self.messages.push("Ton inventaire est vide.".to_string());
             } else {
-                println!("Tu portes :");
-                for item in &self.inventory {
-                    println!("  - {}", item.name());
+                self.messages.push("Tu portes :".to_string());
+                for item in &self.inventory.clone() {
+                    self.messages.push(format!("  - {}", item.name()));
                 }
             }
             return;
@@ -438,10 +423,10 @@ impl Game {
                 let found = room.items.iter().position(|item| item.carry_able());
                 if let Some(index) = found {
                     let picked = room.items.remove(index);
-                    println!("Tu ramasses : {}", picked.name());
+                    self.messages.push(format!("Tu ramasses : {}", picked.name()));
                     self.inventory.push(picked);
                 } else {
-                    println!("Rien de ramassable ici.");
+                    self.messages.push("Rien de ramassable ici.".to_string());
                 }
             }
             return;
@@ -452,13 +437,13 @@ impl Game {
 
         // indice si le joueur est proche d'un mot spécial sans le trouver
         if let Some(hint) = check_proximity_hint(word, &self.special_words) {
-            println!("{}", hint);
+            self.messages.push(hint.to_string());
         }
 
         if is_special_word(word, &self.special_words) {
             // on récupère le game_id associé à ce mot spécial
             if let Some(&target_id) = self.special_word_to_room_id.get(word) {
-                println!("Le mot '{}' résonne dans le couloir...", word);
+                self.messages.push(format!("Le mot '{}' résonne dans le couloir...", word));
                 self.visited_room_ids.push(target_id);
                 self.player_position_index += 1;
             }
@@ -473,34 +458,135 @@ impl Game {
         }
     }
 
-    /// Boucle principale du jeu. Le joueur entre des mots pour avancer.
-    /// Commandes : `exit` pour quitter, n'importe quel mot pour avancer.
+    /// Boucle principale du jeu avec interface ratatui.
+    /// Affiche la salle, l'inventaire et l'historique des messages.
     pub fn play(&mut self) {
-        println!("{:^40}", "=== Not a Prince ===");
-        // affiché uniquement en debug, à retirer pour la version finale
-        println!("Mots spéciaux (debug) : {:?}", self.special_words);
+        // initialisation du terminal en mode raw pour ratatui
+        enable_raw_mode().unwrap();
+        let mut stdout = io::stdout();
+        execute!(stdout, EnterAlternateScreen).unwrap();
+        let backend = CrosstermBackend::new(stdout);
+        let mut terminal = Terminal::new(backend).unwrap();
 
         loop {
-            self.print_current_room();
-            println!("\nEntre un mot ou une commande ('inventory', 'take', 'exit') :");
+            let current_id = self.visited_room_ids[self.player_position_index];
+            let room_name = self.room_map.get(&current_id)
+                .map(|r| r.name.clone())
+                .unwrap_or("???".to_string());
+            let room_desc = self.room_map.get(&current_id)
+                .map(|r| r.description.clone())
+                .unwrap_or_default();
+            let items_text: Vec<String> = self.room_map.get(&current_id)
+                .map(|r| r.items.iter().map(|i| format!("  - {}", i.name())).collect())
+                .unwrap_or_default();
+            let choices_text: Vec<String> = self.room_map.get(&current_id)
+                .map(|r| r.choices.iter().map(|c| format!("  '{}' → {}", c.command, c.description)).collect())
+                .unwrap_or_default();
+            let inv_text: Vec<String> = self.inventory.iter()
+                .map(|i| format!("  - {}", i.name()))
+                .collect();
+            let messages_clone = self.messages.clone();
 
+            // dessin de l'interface ratatui
+            terminal.draw(|frame| {
+                let area = frame.area();
+
+                // découpage vertical : salle en haut, messages en bas
+                let vertical = Layout::default()
+                    .direction(Direction::Vertical)
+                    .constraints([Constraint::Percentage(70), Constraint::Percentage(30)])
+                    .split(area);
+
+                // découpage horizontal du haut : salle à gauche, inventaire à droite
+                let horizontal = Layout::default()
+                    .direction(Direction::Horizontal)
+                    .constraints([Constraint::Percentage(70), Constraint::Percentage(30)])
+                    .split(vertical[0]);
+
+                // panneau salle (gauche)
+                let mut room_lines = vec![
+                    Line::from(Span::styled(
+                        room_desc.clone(),
+                        Style::default().fg(Color::White),
+                    )),
+                ];
+                if !items_text.is_empty() {
+                    room_lines.push(Line::from(""));
+                    room_lines.push(Line::from(Span::styled("Au sol :", Style::default().fg(Color::Yellow))));
+                    for item in &items_text {
+                        room_lines.push(Line::from(Span::styled(item.clone(), Style::default().fg(Color::Yellow))));
+                    }
+                }
+                if !choices_text.is_empty() {
+                    room_lines.push(Line::from(""));
+                    room_lines.push(Line::from(Span::styled("Que fais-tu ?", Style::default().fg(Color::Cyan))));
+                    for choice in &choices_text {
+                        room_lines.push(Line::from(Span::styled(choice.clone(), Style::default().fg(Color::Cyan))));
+                    }
+                }
+
+                let room_widget = Paragraph::new(room_lines)
+                    .block(Block::default()
+                        .borders(Borders::ALL)
+                        .title(Span::styled(
+                            format!(" {} ", room_name),
+                            Style::default().fg(Color::Green).add_modifier(Modifier::BOLD),
+                        )));
+                frame.render_widget(room_widget, horizontal[0]);
+
+                // panneau inventaire (droite)
+                let inv_items: Vec<ListItem> = if inv_text.is_empty() {
+                    vec![ListItem::new("(vide)")]
+                } else {
+                    inv_text.iter().map(|i| ListItem::new(i.as_str())).collect()
+                };
+                let inv_widget = List::new(inv_items)
+                    .block(Block::default()
+                        .borders(Borders::ALL)
+                        .title(Span::styled(
+                            " Inventaire ",
+                            Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD),
+                        )));
+                frame.render_widget(inv_widget, horizontal[1]);
+
+                // panneau messages en bas
+                let msg_items: Vec<ListItem> = messages_clone.iter().rev().take(6)
+                    .map(|m| ListItem::new(m.as_str()))
+                    .collect();
+                let msg_widget = List::new(msg_items)
+                    .block(Block::default()
+                        .borders(Borders::ALL)
+                        .title(Span::styled(
+                            " Historique ",
+                            Style::default().fg(Color::Blue),
+                        )));
+                frame.render_widget(msg_widget, vertical[1]);
+
+            }).unwrap();
+
+            // lecture de la commande du joueur en mode normal (pas raw)
+            disable_raw_mode().unwrap();
+            print!("\n> ");
+            use std::io::Write;
+            io::stdout().flush().unwrap();
             let mut input = String::new();
-            std::io::stdin()
-                .read_line(&mut input)
-                .expect("Erreur de lecture");
+            std::io::stdin().read_line(&mut input).expect("Erreur de lecture");
+            enable_raw_mode().unwrap();
 
             let word = input.trim();
-
             if word == "exit" {
                 break;
             }
-
             if !word.is_empty() {
+                self.messages.push(format!("> {}", word));
                 self.move_with_word(word);
             }
         }
 
-        println!("Fin de la partie.");
+        // on remet le terminal dans son état normal à la fin
+        disable_raw_mode().unwrap();
+        execute!(io::stdout(), LeaveAlternateScreen).unwrap();
+        println!("{}", "Fin de la partie.".yellow().bold());
     }
 }
 
