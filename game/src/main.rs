@@ -491,17 +491,21 @@ impl Game {
             terminal.draw(|frame| {
                 let area = frame.size();
 
-                // découpage vertical : salle en haut, messages en bas
+                // découpage vertical :
                 let vertical = Layout::default()
-                    .direction(Direction::Vertical)
-                    .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
-                    .split(area);
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Length(1),
+                    Constraint::Percentage(65),
+                    Constraint::Percentage(34),
+                ])
+                .split(area);
 
                 // découpage horizontal du haut : salle à gauche, inventaire à droite
                 let horizontal = Layout::default()
                     .direction(Direction::Horizontal)
                     .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
-                    .split(vertical[0]);
+                    .split(vertical[1]);
 
                 // panneau salle (gauche)
                 let mut room_lines = vec![
@@ -560,7 +564,7 @@ impl Game {
                             " Historique ",
                             Style::default().fg(Color::Blue),
                         )));
-                frame.render_widget(msg_widget, vertical[1]);
+                frame.render_widget(msg_widget, vertical[2]);
 
             }).unwrap();
 
