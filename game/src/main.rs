@@ -489,7 +489,7 @@ impl Game {
 
             // dessin de l'interface ratatui
             terminal.draw(|frame| {
-                let area = frame.area();
+                let area = frame.size();
 
                 // découpage vertical : salle en haut, messages en bas
                 let vertical = Layout::default()
