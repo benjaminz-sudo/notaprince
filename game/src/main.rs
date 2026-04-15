@@ -1,6 +1,77 @@
 use rand::Rng;
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicI64, Ordering};
+use colored::Colorize;
+use ratatui::{
+    backend::CrosstermBackend,
+    layout::{Constraint, Direction, Layout},
+    style::{Color, Modifier, Style},
+    text::{Line, Span},
+    widgets::{Block, Borders, List, ListItem, Paragraph},
+    Terminal,
+};
+use crossterm::{
+    execute,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+};
+use std::io;
+
+/// Identifiant de la salle de départ, séparé des salles normales
+/// pour éviter les collisions avec les IDs générés
+const STARTING_ROOM_ID: i64 = 1000;
+
+// on commence à 1000 pour pas écraser les IDs normaux (0, 1, 2...)
+static NEXT_ROOM_INSTANCE_ID: AtomicI64 = AtomicI64::new(0);
+
+/// Items que le joueur peut trouver dans les salles.
+/// Certains sont ramassables, d'autres non.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Item {
+    Sword,
+    BigBook,
+    Potion,
+    Demon,
+    Toilet,
+    Dragon,
+    Duckiebot,
+}
+
+impl Item {
+    /// Retourne le nom affichable de l'item.
+    pub fn name(&self) -> &str {
+        match self {
+            Item::Sword => "Sword",
+            Item::BigBook => "Secret big book",
+            Item::Potion => "Strange potion",
+            Item::Demon => "Demon",
+            Item::Toilet => "Rupert the third emperor, the toilets that talks!",
+            Item::Dragon => "A sleepy dragon",
+            Item::Duckiebot => "A duck that drives its special vehicle",
+        }
+    }
+
+    /// Indique si l'item peut être ramassé par le joueur.
+    pub fn carry_able(&self) -> bool {
+        match self {
+            Item::Sword | Item::BigBook | Item::Potion | Item::Duckiebot => true,
+            Item::Demon | Item::Toilet | Item::Dragon => false,
+        }
+    }
+}
+
+/// Représente un choix proposé au joueur dans certaines salles spéciales.
+#[derive(Debug, Clone)]
+pub struct Choice {
+    /// Commande que le joueur doit taper
+    pub command: String,
+    /// Description affichée au joueur
+    pub description: String,
+    /// game_id de la salle vers laquelle ce choix mène
+    pub target_room: i64,
+}
+
+/// Représente une salle du donjon, qu'elle soit spéciale (hardcodée)
+/// ou générée procéduralement depuis une seed.
 use std::vec;
 
 
@@ -36,15 +107,21 @@ pub struct Room {
 // The player can generate a room using a random word which will define its layout.
 static NEXT_ID_ROOM: AtomicI64 = AtomicI64::new(0);
 impl Room {
-    pub fn new(id_game: Option<i64>) -> Room {
+    /// Crée une nouvelle salle avec un ID de jeu optionnel.
+    /// Si aucun ID n'est fourni, la salle est considérée non placée
+    pub fn new(game_id: Option<i64>) -> Room {
+        let resolved_id = game_id.unwrap_or(-1);
         Room {
-            id_room: NEXT_ID_ROOM.fetch_add(1, Ordering::SeqCst),
-            id_game: id_game.unwrap_or(-1),
-            next_rooms: Vec::new(),
-            description: "This room has no description here is the id_game : ".to_string()+id_game.unwrap_or(-1).to_string().as_str(),
-            name: "Unknown Room".to_string(),
+            instance_id: NEXT_ROOM_INSTANCE_ID.fetch_add(1, Ordering::SeqCst),
+            game_id: resolved_id,
+            next_room_ids: Vec::new(),
+            name: "Salle inconnue".to_string(),
+            description: format!(
+                "Cette salle n'a pas de description. (game_id: {})",
+                resolved_id
+            ),
             items: Vec::new(),
-            choices: Vec::new(),    
+            choices: Vec::new(),
         }
     }
 
@@ -58,15 +135,18 @@ impl Room {
         self.description = new_description;
     }
 
-    pub fn set_next_rooms(&mut self, next_rooms: Vec<i64>) {
-        self.next_rooms = next_rooms;
+    /// Définit les salles accessibles depuis celle-ci par leur game_id.
+    pub fn set_next_room_ids(&mut self, next_room_ids: Vec<i64>) {
+        self.next_room_ids = next_room_ids;
     }
 
+    /// Crée une copie de cette salle nécessaire pour l'insertion en BTreeMap.
     pub fn clone(&self) -> Room {
         Room {
-            id_room: self.id_room,
-            id_game: self.id_game,
-            next_rooms: self.next_rooms.clone(),
+            instance_id: self.instance_id,
+            game_id: self.game_id,
+            next_room_ids: self.next_room_ids.clone(),
+            name: self.name.clone(),
             description: self.description.clone(),
             name: self.name.clone(),
             items: self.items.clone(),
@@ -133,16 +213,22 @@ impl Item {
 
 
 pub struct Game {
-    //The physical rooms the player can move to. Designated by their id_game
-    game_rooms: Vec<i64>,
-    //The possible layouts for each room
-    room_layouts: Vec<Room>,
-    //The player must get to the final room from room 0.
-    max_game_room: i64,
-    //The index of the players' position in the game_rooms Vec.
-    player_position_index: i64,
-    //Arbre binaire avec pour étiquette les id_games et pour valeur les salles correspondantes.
-    room_tree: BTreeMap<i64, Room>,
+    /// Historique des game_id visités par le joueur
+    visited_room_ids: Vec<i64>,
+    /// Index du joueur dans visited_room_ids
+    player_position_index: usize,
+    /// Lookup rapide game_id → Room
+    room_map: BTreeMap<i64, Room>,
+    /// Compteur de salles générées (anti-répétition pour la seed)
+    room_counter: u64,
+    /// Mots spéciaux tirés à l'initialisation ouvrent des salles signifiantes
+    special_words: Vec<String>,
+    /// Relie chaque mot spécial à un game_id de salle signifiante
+    special_word_to_room_id: BTreeMap<String, i64>,
+    /// Inventaire du joueur
+    pub inventory: Vec<Item>,
+    /// Messages à afficher dans le panneau du bas (historique)
+    messages: Vec<String>,
     // the player's inventory to store picked up items
     pub inventory: Vec<Item>,
     // audio manager
@@ -150,21 +236,199 @@ pub struct Game {
 }
 
 impl Game {
+    /// Crée une nouvelle partie vide, prête à être initialisée via `setup()`.
     pub fn new() -> Game {
     let audio_manager = AudioManager::<DefaultBackend>::new(AudioManagerSettings::default()).unwrap();
         Game {
             game_rooms: Vec::new(),
             room_layouts: Vec::new(),
             max_game_room: 30,
+            visited_room_ids: Vec::new(),
             player_position_index: 0,
-            room_tree: BTreeMap::new(),
+            room_map: BTreeMap::new(),
+            room_counter: 0,
+            special_words: Vec::new(),
+            special_word_to_room_id: BTreeMap::new(),
+            inventory: Vec::new(),
+            messages: Vec::new(),
             inventory: Vec::new(),
             audio_manager,
         }
     }
 
-
     pub fn setup(&mut self) {
+        self.visited_room_ids.push(STARTING_ROOM_ID);
+        self.special_words = pick_special_words();
+        self.define_special_rooms();
+        self.bind_special_words();
+        self.messages.push(format!(
+            "Mots spéciaux (debug) : {:?}", self.special_words
+        ));
+    }
+
+    /// Relie les 5 mots spéciaux tirés aux salles de Vishnujan.
+    /// Chaque mot ouvre une salle différente de façon déterministe.
+    fn bind_special_words(&mut self) {
+        // les game_id correspondent aux salles hardcodées de Vishnujan
+        let special_room_ids = [1001, 1002, 1003, 1004, 1005];
+        for (index, word) in self.special_words.iter().enumerate() {
+            self.special_word_to_room_id
+                .insert(word.clone(), special_room_ids[index]);
+        }
+    }
+
+    /// Insère les salles spéciales hardcodées dans la room_map.
+    fn define_special_rooms(&mut self) {
+        // salle de départ fixe, toujours la même peu importe la seed
+        let mut start_room = Room::new(Some(STARTING_ROOM_ID));
+        start_room.set_name("Prison".to_string());
+        start_room.set_description(
+            "Tu te réveilles dans une prison. Une épée et un vieux livre traînent au sol.".to_string(),
+        );
+        start_room.items.push(Item::Sword);
+        start_room.items.push(Item::BigBook);
+        self.room_map.insert(STARTING_ROOM_ID, start_room);
+
+        // salle du trône
+        let mut throne = Room::new(Some(1001));
+        throne.set_name("Throne Room".to_string());
+        throne.set_description(
+            "Une salle majestueuse avec un trône doré. Un énorme dragon dort juste à côté !".to_string(),
+        );
+        throne.items.push(Item::Dragon);
+        self.room_map.insert(1001, throne);
+
+        // chambre
+        let mut bedroom = Room::new(Some(1002));
+        bedroom.set_name("Bedroom".to_string());
+        bedroom.set_description(
+            "Une chambre vide avec un lit double. Une étrange potion violette traîne au sol.".to_string(),
+        );
+        bedroom.items.push(Item::Potion);
+        self.room_map.insert(1002, bedroom);
+
+        // salle de bain
+        let mut bathroom = Room::new(Some(1003));
+        bathroom.set_name("Bathroom".to_string());
+        bathroom.set_description(
+            "Une salle de bain basique... sauf que les toilettes dorées se lèvent et veulent te parler.".to_string(),
+        );
+        bathroom.items.push(Item::Toilet);
+        self.room_map.insert(1003, bathroom);
+
+        // salle sombre avec démon — choix obligatoire
+        let mut dark = Room::new(Some(1004));
+        dark.set_name("Dark Room".to_string());
+        dark.set_description(
+            "L'obscurité totale. Tu ressens une forte présence démoniaque. Ne lui parle pas.".to_string(),
+        );
+        dark.items.push(Item::Demon);
+        dark.choices.push(Choice {
+            command: "run".to_string(),
+            description: "Fuir, prendre la première porte visible.".to_string(),
+            target_room: 1005,
+        });
+        dark.choices.push(Choice {
+            command: "fight".to_string(),
+            description: "Se battre contre le démon !".to_string(),
+            target_room: 9001,
+        });
+        self.room_map.insert(1004, dark);
+
+        // labo d'alchimie
+        let mut lab = Room::new(Some(1005));
+        lab.set_name("Alchemy Lab".to_string());
+        lab.set_description(
+            "L'air est épais de fumée colorée. Les étagères débordent de béchers bouillonnants.".to_string(),
+        );
+        lab.items.push(Item::Potion);
+        self.room_map.insert(1005, lab);
+
+        // game over démon
+        let mut game_over_demon = Room::new(Some(9001));
+        game_over_demon.set_name("GAME OVER".to_string());
+        game_over_demon.set_description(
+            "Tu as essayé de combattre une entité démoniaque à mains nues... Elle a déchiré ton âme.\n\nTu es mort. Tape 'exit' pour quitter.".to_string(),
+        );
+        self.room_map.insert(9001, game_over_demon);
+    }
+
+    /// Tente de faire avancer le joueur selon le mot ou la commande entrée.
+    /// Mot spécial → salle signifiante de Vishnujan.
+    /// Commande de choix → suit le choix de la salle actuelle.
+    /// Sinon → génération procédurale depuis la seed.
+    fn move_with_word(&mut self, word: &str) {
+        let current_id = self.visited_room_ids[self.player_position_index];
+
+        // vérifie d'abord si c'est un choix de la salle actuelle
+        if let Some(room) = self.room_map.get(&current_id) {
+            let target = room.choices.iter()
+                .find(|choice| choice.command == word)
+                .map(|choice| choice.target_room);
+
+            if let Some(target_id) = target {
+                self.visited_room_ids.push(target_id);
+                self.player_position_index += 1;
+                return;
+            }
+        }
+
+        // commande inventaire
+        if word == "inventory" || word == "inv" {
+            if self.inventory.is_empty() {
+                self.messages.push("Ton inventaire est vide.".to_string());
+            } else {
+                self.messages.push("Tu portes :".to_string());
+                for item in &self.inventory.clone() {
+                    self.messages.push(format!("  - {}", item.name()));
+                }
+            }
+            return;
+        }
+
+        // commande take
+        if word == "take" {
+            if let Some(room) = self.room_map.get_mut(&current_id) {
+                let found = room.items.iter().position(|item| item.carry_able());
+                if let Some(index) = found {
+                    let picked = room.items.remove(index);
+                    self.messages.push(format!("Tu ramasses : {}", picked.name()));
+                    self.inventory.push(picked);
+                } else {
+                    self.messages.push("Rien de ramassable ici.".to_string());
+                }
+            }
+            return;
+        }
+
+        let seed = word_to_seed(word, self.room_counter);
+        self.room_counter += 1;
+
+        // indice si le joueur est proche d'un mot spécial sans le trouver
+        if let Some(hint) = check_proximity_hint(word, &self.special_words) {
+            self.messages.push(hint.to_string());
+        }
+
+        if is_special_word(word, &self.special_words) {
+            // on récupère le game_id associé à ce mot spécial
+            if let Some(&target_id) = self.special_word_to_room_id.get(word) {
+                self.messages.push(format!("Le mot '{}' résonne dans le couloir...", word));
+                self.visited_room_ids.push(target_id);
+                self.player_position_index += 1;
+            }
+        } else {
+            let description = generate_room_description(seed);
+            let new_id = self.room_counter as i64;
+            let mut new_room = Room::new(Some(new_id));
+            new_room.set_description(description);
+            self.room_map.insert(new_id, new_room);
+            self.visited_room_ids.push(new_id);
+            self.player_position_index += 1;
+        }
+    }
+
+    /// Boucle principale du jeu avec interface ratatui.
+    /// Affiche la salle, l'inventaire et l'historique des messages.
         //Starting room has id_game==1000
         self.game_rooms.push(1000);
         Self::define_layouts(self);
@@ -508,17 +772,166 @@ impl Game {
     }
 
     pub fn play(&mut self) {
-        loop {
-            self.print_room_info();
-            println!("What do you want to do? ('next' to advance, 'take' to grab items, 'inventory' to check bag, 'exit' to leave) :");
-            
-            let mut input = String::new();
-            std::io::stdin().read_line(&mut input).expect("Failed to read line");
-            let command = input.trim().to_lowercase();
+        // initialisation du terminal en mode raw pour ratatui
+        enable_raw_mode().unwrap();
+        let mut stdout = io::stdout();
+        execute!(stdout, EnterAlternateScreen).unwrap();
+        let backend = CrosstermBackend::new(stdout);
+        let mut terminal = Terminal::new(backend).unwrap();
 
-            if command == "exit" {
+        loop {
+            let current_id = self.visited_room_ids[self.player_position_index];
+            let room_name = self.room_map.get(&current_id)
+                .map(|r| r.name.clone())
+                .unwrap_or("???".to_string());
+            let room_desc = self.room_map.get(&current_id)
+                .map(|r| r.description.clone())
+                .unwrap_or_default();
+            let items_text: Vec<String> = self.room_map.get(&current_id)
+                .map(|r| r.items.iter().map(|i| format!("  - {}", i.name())).collect())
+                .unwrap_or_default();
+            let choices_text: Vec<String> = self.room_map.get(&current_id)
+                .map(|r| r.choices.iter().map(|c| format!("  '{}' → {}", c.command, c.description)).collect())
+                .unwrap_or_default();
+            let inv_text: Vec<String> = self.inventory.iter()
+                .map(|i| format!("  - {}", i.name()))
+                .collect();
+            let messages_clone = self.messages.clone();
+
+            // dessin de l'interface ratatui
+            terminal.draw(|frame| {
+                let area = frame.size();
+
+                // découpage vertical :
+                let vertical = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Length(1),
+                    Constraint::Percentage(65),
+                    Constraint::Percentage(34),
+                ])
+                .split(area);
+
+                // découpage horizontal du haut : salle à gauche, inventaire à droite
+                let horizontal = Layout::default()
+                    .direction(Direction::Horizontal)
+                    .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
+                    .split(vertical[1]);
+
+                // panneau salle (gauche)
+                let mut room_lines = vec![
+                    Line::from(Span::styled(
+                        room_desc.clone(),
+                        Style::default().fg(Color::White),
+                    )),
+                ];
+                if !items_text.is_empty() {
+                    room_lines.push(Line::from(""));
+                    room_lines.push(Line::from(Span::styled("Au sol :", Style::default().fg(Color::Yellow))));
+                    for item in &items_text {
+                        room_lines.push(Line::from(Span::styled(item.clone(), Style::default().fg(Color::Yellow))));
+                    }
+                }
+                if !choices_text.is_empty() {
+                    room_lines.push(Line::from(""));
+                    room_lines.push(Line::from(Span::styled("Que fais-tu ?", Style::default().fg(Color::Cyan))));
+                    for choice in &choices_text {
+                        room_lines.push(Line::from(Span::styled(choice.clone(), Style::default().fg(Color::Cyan))));
+                    }
+                }
+
+                let room_widget = Paragraph::new(room_lines)
+                    .block(Block::default()
+                        .borders(Borders::ALL)
+                        .title(Span::styled(
+                            format!(" {} ", room_name),
+                            Style::default().fg(Color::Green).add_modifier(Modifier::BOLD),
+                        )));
+                frame.render_widget(room_widget, horizontal[0]);
+
+                // panneau inventaire (droite)
+                let inv_items: Vec<ListItem> = if inv_text.is_empty() {
+                    vec![ListItem::new("(vide)")]
+                } else {
+                    inv_text.iter().map(|i| ListItem::new(i.as_str())).collect()
+                };
+                let inv_widget = List::new(inv_items)
+                    .block(Block::default()
+                        .borders(Borders::ALL)
+                        .title(Span::styled(
+                            " Inventaire ",
+                            Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD),
+                        )));
+                frame.render_widget(inv_widget, horizontal[1]);
+
+                // panneau messages en bas
+                let msg_items: Vec<ListItem> = messages_clone.iter().rev().take(6)
+                    .map(|m| ListItem::new(m.as_str()))
+                    .collect();
+                let msg_widget = List::new(msg_items)
+                    .block(Block::default()
+                        .borders(Borders::ALL)
+                        .title(Span::styled(
+                            " Historique ",
+                            Style::default().fg(Color::Blue),
+                        )));
+                frame.render_widget(msg_widget, vertical[2]);
+
+            }).unwrap();
+
+            // lecture de la commande du joueur en mode normal (pas raw)
+            disable_raw_mode().unwrap();
+            print!("\n> ");
+            use std::io::Write;
+            io::stdout().flush().unwrap();
+            let mut input = String::new();
+            std::io::stdin().read_line(&mut input).expect("Erreur de lecture");
+            enable_raw_mode().unwrap();
+
+            let word = command;
+            if word == "exit" {
                 break;
             }
+            if !word.is_empty() {
+                self.messages.push(format!("> {}", word));
+                self.move_with_word(word);
+            }
+        }
+
+        // on remet le terminal dans son état normal à la fin
+        disable_raw_mode().unwrap();
+        execute!(io::stdout(), LeaveAlternateScreen).unwrap();
+        println!("{}", "Fin de la partie.".yellow().bold());
+    }
+}
+
+/// Tire aléatoirement 5 mots d'un dictionnaire intégré
+/// pour définir les mots spéciaux de cette partie.
+/// Ces mots sont les seuls à ouvrir des salles signifiantes.
+pub fn pick_special_words() -> Vec<String> {
+    let dictionary = vec![
+        "lune", "forge", "cendre", "miroir", "épine",
+        "brume", "ardoise", "seuil", "crypte", "voûte",
+        "marée", "éclair", "fossé", "givre", "ombre",
+        "torche", "ronce", "clé", "pierre", "sang",
+    ];
+
+    let mut rng = rand::thread_rng();
+    let mut picked: Vec<String> = dictionary
+        .iter()
+        .map(|w| w.to_string())
+        .collect();
+
+    // shuffle maison plutôt que d'importer shuffle de rand
+    for i in (1..picked.len()).rev() {
+        let j = rng.gen_range(0..=i);
+        picked.swap(i, j);
+    }
+
+    picked.truncate(5);
+    picked
+}
+
 
             // === Checking inventory ===
             if command == "inventory" || command == "inv" {
@@ -615,12 +1028,8 @@ fn print_room_info(&self) {
 
 }
 fn main() {
-
     let mut game = Game::new();
-
-    game.setup();    
-
+    game.setup();
     game.play();
-
 }
 
