@@ -646,7 +646,7 @@ impl Game {
 /// Randomly draws 'count' words from the built-in dictionary without replacement.
 ///
 /// Uses a Fisher-Yates shuffle for unbiased random selection.
-/// These words are the only ones that unlock significant rooms 
+/// These words are the only ones that unlock significant rooms, 
 /// the player must discover them through exploration and item clues.
 ///
 /// # Arguments
