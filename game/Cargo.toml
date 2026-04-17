@@ -4,10 +4,5 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-eframe = "0.33.3"
-kira = "0.12.0"
-petgraph = "0.8.3"
 rand = "0.8"
 colored = "2"
-ratatui = "0.26"
-crossterm = "0.27"
