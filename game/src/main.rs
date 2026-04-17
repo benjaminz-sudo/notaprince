@@ -1,3 +1,5 @@
+//! Text-based adventure game "NotAPrince".
+
 use rand::prelude::*;
 use rand::rngs::StdRng;
 use rand::SeedableRng;
@@ -5,9 +7,14 @@ use std::collections::BTreeMap;
 use std::io::{self, Write};
 use colored::*;
 
+/// The game ID of the starting room. Always fixed regardless of the seed.
 const STARTING_ROOM_ID: i64 = 1000;
+/// ID of the winning room.
 const FINAL_ROOM_ID: i64 = 9999;
 
+/// Items are either carryable can be picked up by the player
+/// or non-carryable because it's too large or dangerous to move.
+/// a hint towards unlocking a significant room.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Item {
     Sword,
@@ -30,6 +37,7 @@ pub enum Item {
 }
 
 impl Item {
+/// Returns the display name of the item.
     pub fn name(&self) -> &str {
         match self {
             Item::Sword => "Sword",
