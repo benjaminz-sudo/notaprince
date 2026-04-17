@@ -60,7 +60,7 @@ impl Item {
         }
     }
 
-    /// Returns `true` if this item can be picked up and added to the player's inventory.
+    /// Returns 'true' if this item can be picked up and added to the player's inventory.
     ///
     /// Large or dangerous entities (Demon, Toilet, Dragon) cannot be carried.
     
@@ -77,12 +77,12 @@ impl Item {
 
     // Returns the special word revealed by this item when picked up, if any.
     ///
-    /// Each clue item is linked to a specific index in the `special_words` list.
+    /// Each clue item is linked to a specific index in the 'special_words' list.
     /// When a player picks up this item, they learn the word needed to unlock
     /// Returns `None` for items that do not reveal a word.
     ///
     /// # Arguments
-    /// * `special_words` - The list of special words drawn at game initialization.
+    /// * 'special_words' : The list of special words drawn at game initialization.
     
     pub fn revealed_word(&self, special_words: &[String]) -> Option<String> {
         match self {
@@ -110,8 +110,8 @@ pub struct Choice {
     pub command: String,
     /// A description of what this choice does, shown to the player.
     pub description: String,
-    /// The `id_game` of the room this choice leads to.
-    /// A value of `-1` means the player will be prompted for a seed word.
+    /// The 'id_game' of the room this choice leads to.
+    /// A value of '-1' means the player will be prompted for a seed word.
     pub target_room: i64,
 }
 
@@ -134,6 +134,12 @@ pub struct Room {
 }
 
 impl Room {
+    /// Creates a new empty room with the given game ID.
+    ///
+    /// If no ID is provided, defaults to '-1'.
+    ///
+    /// # Arguments
+    /// * 'game_id' : Optional game ID to assign to this room.
     pub fn new(game_id: Option<i64>) -> Room {
         let resolved_id = game_id.unwrap_or(-1);
         Room {
@@ -145,20 +151,36 @@ impl Room {
         }
     }
 
+    /// Sets the room name.
     pub fn set_name(&mut self, new_name: String) { self.name = new_name; }
+    /// Sets the room description.
     pub fn set_description(&mut self, new_description: String) { self.description = new_description; }
 }
 
+/// The main game state, holding all rooms, player position, inventory,
+/// and the special word system.
 pub struct Game {
+    /// Ordered history of room IDs visited by the player.
     visited_room_ids: Vec<i64>,
+    /// Index into 'visited_room_ids' pointing to the player's current room.
     player_position_index: usize,
+    /// Lookup table mapping each 'id_game' to its corresponding `Room`.
+    /// Uses a 'BTreeMap' for deterministic ordering by key.
     room_map: BTreeMap<i64, Room>,
+    /// The 10 special words drawn randomly at game start.
+    /// Only these words unlock significant rooms.
     special_words: Vec<String>,
+    /// Maps each special word to the 'id_game' of its associated significant room.
     special_word_to_room_id: BTreeMap<String, i64>,
+    /// The player's current inventory of carried items.
     pub inventory: Vec<Item>,
+    /// Pending messages to display at the end of the current game loop iteration.
     messages: Vec<String>,
+    /// Auto-incrementing ID counter for procedurally generated rooms.
+    /// Starts at 2001 to avoid collisions with special room IDs.
     next_procedural_id: i64,
 }
+
 
 impl Game {
     pub fn new() -> Game {
