@@ -1,11 +1,11 @@
 //! Text-based adventure game "NotAPrince".
 
+use colored::*;
+use rand::SeedableRng;
 use rand::prelude::*;
 use rand::rngs::StdRng;
-use rand::SeedableRng;
 use std::collections::BTreeMap;
 use std::io::{self, Write};
-use colored::*;
 
 /// The game ID of the starting room. Always fixed regardless of the seed.
 const STARTING_ROOM_ID: i64 = 1000;
@@ -37,7 +37,7 @@ pub enum Item {
 }
 
 impl Item {
-/// Returns the display name of the item.
+    /// Returns the display name of the item.
     pub fn name(&self) -> &str {
         match self {
             Item::Sword => "Sword",
@@ -63,14 +63,23 @@ impl Item {
     /// Returns 'true' if this item can be picked up and added to the player's inventory.
     ///
     /// Large or dangerous entities (Demon, Toilet, Dragon) cannot be carried.
-    
+
     pub fn carry_able(&self) -> bool {
         match self {
-            Item::Sword | Item::BigBook | Item::Potion | Item::Duckiebot |
-            Item::ThroneScale | Item::PurplePotion | Item::ToiletPaper |
-            Item::MirrorShard | Item::GameTicket | Item::RedButton |
-            Item::DuckieWhistle | Item::BedroomKey | Item::BathroomSoap |
-            Item::DemonClaw => true,
+            Item::Sword
+            | Item::BigBook
+            | Item::Potion
+            | Item::Duckiebot
+            | Item::ThroneScale
+            | Item::PurplePotion
+            | Item::ToiletPaper
+            | Item::MirrorShard
+            | Item::GameTicket
+            | Item::RedButton
+            | Item::DuckieWhistle
+            | Item::BedroomKey
+            | Item::BathroomSoap
+            | Item::DemonClaw => true,
             Item::Demon | Item::Toilet | Item::Dragon => false,
         }
     }
@@ -83,7 +92,7 @@ impl Item {
     ///
     /// # Arguments
     /// * 'special_words' : The list of special words drawn at game initialization.
-    
+
     pub fn revealed_word(&self, special_words: &[String]) -> Option<String> {
         match self {
             Item::ThroneScale => Some(special_words.get(0)?.clone()),
@@ -106,7 +115,7 @@ impl Item {
 /// instead of using the standard `next` command.
 #[derive(Debug, Clone)]
 pub struct Choice {
-     /// The command the player must type to select this option.
+    /// The command the player must type to select this option.
     pub command: String,
     /// A description of what this choice does, shown to the player.
     pub description: String,
@@ -152,9 +161,13 @@ impl Room {
     }
 
     /// Sets the room name.
-    pub fn set_name(&mut self, new_name: String) { self.name = new_name; }
+    pub fn set_name(&mut self, new_name: String) {
+        self.name = new_name;
+    }
     /// Sets the room description.
-    pub fn set_description(&mut self, new_description: String) { self.description = new_description; }
+    pub fn set_description(&mut self, new_description: String) {
+        self.description = new_description;
+    }
 }
 
 /// The main game state, holding all rooms, player position, inventory,
@@ -181,7 +194,6 @@ pub struct Game {
     next_procedural_id: i64,
 }
 
-
 impl Game {
     /// Creates a new game instance.
     pub fn new() -> Game {
@@ -197,7 +209,7 @@ impl Game {
         }
     }
 
-     /// Initializes the game: places the player in the starting room,
+    /// Initializes the game: places the player in the starting room,
     /// draws the special words, builds all hardcoded rooms, and binds words to rooms.
     pub fn setup(&mut self) {
         self.visited_room_ids.push(STARTING_ROOM_ID);
@@ -205,29 +217,30 @@ impl Game {
         self.define_special_rooms();
         self.bind_special_words();
         // debug: visible at game start, should be removed for final release
-        self.messages.push(format!("Special words (debug): {:?}", self.special_words));
+        self.messages
+            .push(format!("Special words (debug): {:?}", self.special_words));
     }
 
-      /// Binds each special word to a hardcoded significant room ID.
+    /// Binds each special word to a hardcoded significant room ID.
     ///
     /// the first word maps to room 1001,
     /// This mapping changes every run
     /// since the words are drawn randomly.
-    
+
     fn bind_special_words(&mut self) {
         let special_room_ids = [1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009, 1010];
         for (index, word) in self.special_words.iter().enumerate() {
-            self.special_word_to_room_id.insert(word.clone(), special_room_ids[index]);
+            self.special_word_to_room_id
+                .insert(word.clone(), special_room_ids[index]);
         }
     }
 
-    
-     /// Builds and inserts all hardcoded special rooms into the game map.
+    /// Builds and inserts all hardcoded special rooms into the game map.
     ///
     /// Special rooms use fixed IDs in the range 1000-1010.
     /// Game over rooms use IDs in the range 9001-9005.
     /// The final exit room has ID 9999.
-    
+
     fn define_special_rooms(&mut self) {
         let mut start_room = Room::new(Some(STARTING_ROOM_ID));
         start_room.set_name("White Hall".to_string());
@@ -249,7 +262,8 @@ impl Game {
         let mut bedroom = Room::new(Some(1002));
         bedroom.set_name("Bedroom".to_string());
         bedroom.set_description(
-            "An empty bedroom with a double bed. A strange purple potion lies on the floor.".to_string(),
+            "An empty bedroom with a double bed. A strange purple potion lies on the floor."
+                .to_string(),
         );
         bedroom.items.push(Item::Potion);
         self.room_map.insert(1002, bedroom);
@@ -257,7 +271,8 @@ impl Game {
         let mut bathroom = Room::new(Some(1003));
         bathroom.set_name("Bathroom".to_string());
         bathroom.set_description(
-            "A basic bathroom... except the golden toilets stand up and want to talk to you.".to_string(),
+            "A basic bathroom... except the golden toilets stand up and want to talk to you."
+                .to_string(),
         );
         bathroom.items.push(Item::Toilet);
         self.room_map.insert(1003, bathroom);
@@ -283,7 +298,8 @@ impl Game {
         let mut lab = Room::new(Some(1005));
         lab.set_name("Alchemy Lab".to_string());
         lab.set_description(
-            "The air is thick with colorful smoke. Shelves overflow with bubbling beakers.".to_string(),
+            "The air is thick with colorful smoke. Shelves overflow with bubbling beakers."
+                .to_string(),
         );
         lab.items.push(Item::Potion);
         self.room_map.insert(1005, lab);
@@ -291,7 +307,8 @@ impl Game {
         let mut prout = Room::new(Some(1006));
         prout.set_name("Prout Room".to_string());
         prout.set_description(
-            "An extremely foul odor hits your nostrils. Welcome to the LEGENDARY PROUT ROOM!!".to_string(),
+            "An extremely foul odor hits your nostrils. Welcome to the LEGENDARY PROUT ROOM!!"
+                .to_string(),
         );
         prout.items.push(Item::Toilet);
         self.room_map.insert(1006, prout);
@@ -308,7 +325,8 @@ impl Game {
         });
         mirror.choices.push(Choice {
             command: "look".to_string(),
-            description: "Look at your reflection... wait, it's smiling but you're not!".to_string(),
+            description: "Look at your reflection... wait, it's smiling but you're not!"
+                .to_string(),
             target_room: 1004,
         });
         mirror.choices.push(Choice {
@@ -383,19 +401,27 @@ impl Game {
         });
         self.room_map.insert(1010, db);
 
-        self.add_game_over_room(9001, "You tried to fight a demonic entity with bare hands... It ripped your soul apart.");
+        self.add_game_over_room(
+            9001,
+            "You tried to fight a demonic entity with bare hands... It ripped your soul apart.",
+        );
         self.add_game_over_room(9002, "You trusted the host and stayed with Door 1... The floor opened and you fell into a pit of spikes.");
-        self.add_game_over_room(9003, "You smashed the mirror! Seven years of bad luck instantly crushed you.");
+        self.add_game_over_room(
+            9003,
+            "You smashed the mirror! Seven years of bad luck instantly crushed you.",
+        );
         self.add_game_over_room(9004, "You pressed the button. BOOM! That was a mistake.");
         self.add_game_over_room(9005, "You followed the Duckiebots for hours, then days. You forgot who you are. You are now a duckiebot.");
 
         let mut exit_room = Room::new(Some(FINAL_ROOM_ID));
         exit_room.set_name("The Exit".to_string());
-        exit_room.set_description("You see a bright light ahead. Congratulations! You've found the exit!".to_string());
+        exit_room.set_description(
+            "You see a bright light ahead. Congratulations! You've found the exit!".to_string(),
+        );
         self.room_map.insert(FINAL_ROOM_ID, exit_room);
     }
 
-     /// Creates a game over room with the given ID and death message,
+    /// Creates a game over room with the given ID and death message,
     /// then inserts it into the game map.
     ///
     /// # Arguments
@@ -456,7 +482,7 @@ impl Game {
         room
     }
 
-     /// Prompts the player to enter a seed word, then moves them to the resulting room.
+    /// Prompts the player to enter a seed word, then moves them to the resulting room.
     ///
     /// If the word matches a special word, the player enters the associated
     /// significant room. Otherwise, a procedural room is generated from the word.
@@ -464,7 +490,9 @@ impl Game {
         print!("Enter a word to open the door: ");
         io::stdout().flush().unwrap();
         let mut seed = String::new();
-        io::stdin().read_line(&mut seed).expect("Failed to read input");
+        io::stdin()
+            .read_line(&mut seed)
+            .expect("Failed to read input");
         let seed = seed.trim().to_lowercase();
 
         let target_id = if let Some(&room_id) = self.special_word_to_room_id.get(&seed) {
@@ -488,18 +516,23 @@ impl Game {
     /// * 'room' : Reference to the current room.
     fn show_help(&mut self, room: &Room) {
         self.messages.push("Available commands:".to_string());
-        self.messages.push("  - help: show this help message".to_string());
-        self.messages.push("  - inventory / inv: show your inventory".to_string());
+        self.messages
+            .push("  - help: show this help message".to_string());
+        self.messages
+            .push("  - inventory / inv: show your inventory".to_string());
         self.messages.push("  - exit: quit the game".to_string());
         if room.choices.is_empty() {
             if room.items.iter().any(|i| i.carry_able()) {
-                self.messages.push("  - take: pick up a carryable item".to_string());
+                self.messages
+                    .push("  - take: pick up a carryable item".to_string());
             }
-            self.messages.push("  - next: go through an exit (you'll be asked for a seed word)".to_string());
+            self.messages
+                .push("  - next: go through an exit (you'll be asked for a seed word)".to_string());
         } else {
             self.messages.push("Room choices:".to_string());
             for choice in &room.choices {
-                self.messages.push(format!("  - {}: {}", choice.command, choice.description));
+                self.messages
+                    .push(format!("  - {}: {}", choice.command, choice.description));
             }
         }
     }
@@ -516,7 +549,6 @@ impl Game {
         }
     }
 
-    
     /// Attempts to pick up the first carryable item in the current room.
     ///
     /// If the item reveals a special word, that word is shown to the player.
@@ -527,12 +559,14 @@ impl Game {
         if let Some(room) = self.room_map.get_mut(&current_id) {
             if let Some(index) = room.items.iter().position(|i| i.carry_able()) {
                 let item = room.items.remove(index);
-                self.messages.push(format!("You picked up: {}", item.name()));
-                
+                self.messages
+                    .push(format!("You picked up: {}", item.name()));
+
                 if let Some(word) = item.revealed_word(&self.special_words) {
-                    self.messages.push(format!("The item whispers the word: '{}'", word));
+                    self.messages
+                        .push(format!("The item whispers the word: '{}'", word));
                 }
-                
+
                 self.inventory.push(item);
             } else {
                 self.messages.push("Nothing to pick up here.".to_string());
@@ -540,7 +574,7 @@ impl Game {
         }
     }
 
-     /// Main game loop. Displays the current room, reads player input,
+    /// Main game loop. Displays the current room, reads player input,
     /// and dispatches commands until the player wins or exits.
     pub fn play(&mut self) {
         println!("{}", "\n=== WELCOME TO NOTAPRINCE ===\n".bold());
@@ -567,10 +601,16 @@ impl Game {
                 }
                 println!("\n{}", "(You must pick one of the choices above)".red());
             } else {
-                println!("\n{}", "(Type 'next' to proceed, 'take' to pick up items)".dimmed());
+                println!(
+                    "\n{}",
+                    "(Type 'next' to proceed, 'take' to pick up items)".dimmed()
+                );
             }
 
-            println!("\n{}", "(Type 'help' for commands, 'exit' to quit)".dimmed());
+            println!(
+                "\n{}",
+                "(Type 'help' for commands, 'exit' to quit)".dimmed()
+            );
 
             if !self.inventory.is_empty() {
                 println!("\n{}", "Your inventory:".magenta());
@@ -588,18 +628,29 @@ impl Game {
             }
 
             if current_id == FINAL_ROOM_ID {
-                println!("\n{}", "Congratulations! You have escaped the dungeon!".green().bold());
+                println!(
+                    "\n{}",
+                    "Congratulations! You have escaped the dungeon!"
+                        .green()
+                        .bold()
+                );
                 break;
             }
 
             print!("\n{} ", ">".bold());
             io::stdout().flush().unwrap();
             let mut input = String::new();
-            io::stdin().read_line(&mut input).expect("Failed to read input");
+            io::stdin()
+                .read_line(&mut input)
+                .expect("Failed to read input");
             let command = input.trim().to_lowercase();
 
-            if command.is_empty() { continue; }
-            if command == "exit" { break; }
+            if command.is_empty() {
+                continue;
+            }
+            if command == "exit" {
+                break;
+            }
 
             if command == "help" {
                 self.show_help(&room);
@@ -612,7 +663,11 @@ impl Game {
             }
 
             if !room.choices.is_empty() {
-                if let Some(choice) = room.choices.iter().find(|c| c.command.to_lowercase() == command) {
+                if let Some(choice) = room
+                    .choices
+                    .iter()
+                    .find(|c| c.command.to_lowercase() == command)
+                {
                     let target = choice.target_room;
                     if target == -1 {
                         self.prompt_for_seed_and_move();
@@ -621,8 +676,14 @@ impl Game {
                         self.player_position_index += 1;
                     }
                 } else {
-                    let choices_str = room.choices.iter().map(|c| c.command.as_str()).collect::<Vec<_>>().join(", ");
-                    self.messages.push(format!("You must choose one of: {}", choices_str));
+                    let choices_str = room
+                        .choices
+                        .iter()
+                        .map(|c| c.command.as_str())
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    self.messages
+                        .push(format!("You must choose one of: {}", choices_str));
                 }
             } else {
                 match command.as_str() {
@@ -633,7 +694,8 @@ impl Game {
                         self.take_item(current_id);
                     }
                     _ => {
-                        self.messages.push(format!("Unknown command: '{}'", command));
+                        self.messages
+                            .push(format!("Unknown command: '{}'", command));
                     }
                 }
             }
@@ -646,7 +708,7 @@ impl Game {
 /// Randomly draws 'count' words from the built-in dictionary without replacement.
 ///
 /// Uses a Fisher-Yates shuffle for unbiased random selection.
-/// These words are the only ones that unlock significant rooms, 
+/// These words are the only ones that unlock significant rooms,
 /// the player must discover them through exploration and item clues.
 ///
 /// # Arguments
@@ -656,10 +718,9 @@ impl Game {
 /// Returns a `Vec<String>` containing `count` randomly selected words.
 pub fn pick_special_words(count: usize) -> Vec<String> {
     let dictionary = vec![
-        "lune", "forge", "cendre", "miroir", "epine",
-        "brume", "ardoise", "seuil", "crypte", "voute",
-        "maree", "eclair", "fosse", "givre", "ombre",
-        "torche", "ronce", "cle", "pierre", "sang",
+        "lune", "forge", "cendre", "miroir", "epine", "brume", "ardoise", "seuil", "crypte",
+        "voute", "maree", "eclair", "fosse", "givre", "ombre", "torche", "ronce", "cle", "pierre",
+        "sang",
     ];
     let mut rng = rand::thread_rng();
     let mut picked = dictionary.clone();
