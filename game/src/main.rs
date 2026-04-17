@@ -60,6 +60,10 @@ impl Item {
         }
     }
 
+    /// Returns `true` if this item can be picked up and added to the player's inventory.
+    ///
+    /// Large or dangerous entities (Demon, Toilet, Dragon) cannot be carried.
+    
     pub fn carry_able(&self) -> bool {
         match self {
             Item::Sword | Item::BigBook | Item::Potion | Item::Duckiebot |
@@ -71,6 +75,15 @@ impl Item {
         }
     }
 
+    // Returns the special word revealed by this item when picked up, if any.
+    ///
+    /// Each clue item is linked to a specific index in the `special_words` list.
+    /// When a player picks up this item, they learn the word needed to unlock
+    /// Returns `None` for items that do not reveal a word.
+    ///
+    /// # Arguments
+    /// * `special_words` - The list of special words drawn at game initialization.
+    
     pub fn revealed_word(&self, special_words: &[String]) -> Option<String> {
         match self {
             Item::ThroneScale => Some(special_words.get(0)?.clone()),
@@ -87,20 +100,36 @@ impl Item {
         }
     }
 }
-
+/// Player choice in a room with explicit options.
+///
+/// When a room has choices, the player must type one of the commands
+/// instead of using the standard `next` command.
 #[derive(Debug, Clone)]
 pub struct Choice {
+     /// The command the player must type to select this option.
     pub command: String,
+    /// A description of what this choice does, shown to the player.
     pub description: String,
+    /// The `id_game` of the room this choice leads to.
+    /// A value of `-1` means the player will be prompted for a seed word.
     pub target_room: i64,
 }
 
+/// Game room containing description, items, and choices.
+/// Rooms can be either hardcoded special rooms
+/// or procedurally generated rooms, created on the fly from a seed word.
 #[derive(Debug, Clone)]
 pub struct Room {
+    /// Unique identifier for this room within the game map.
     pub id_game: i64,
+    /// Short name displayed as the room header.
     pub name: String,
+    /// Full description shown when the player enters the room.
     pub description: String,
+    /// Items currently present on the floor of this room.
     pub items: Vec<Item>,
+    /// Special choices available to the player in this room.
+    /// If empty, the player uses standard navigation commands.
     pub choices: Vec<Choice>,
 }
 
