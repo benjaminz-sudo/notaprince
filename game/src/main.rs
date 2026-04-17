@@ -183,6 +183,7 @@ pub struct Game {
 
 
 impl Game {
+    /// Creates a new game instance.
     pub fn new() -> Game {
         Game {
             visited_room_ids: Vec::new(),
@@ -196,14 +197,23 @@ impl Game {
         }
     }
 
+     /// Initializes the game: places the player in the starting room,
+    /// draws the special words, builds all hardcoded rooms, and binds words to rooms.
     pub fn setup(&mut self) {
         self.visited_room_ids.push(STARTING_ROOM_ID);
         self.special_words = pick_special_words(10);
         self.define_special_rooms();
         self.bind_special_words();
+        // debug: visible at game start, should be removed for final release
         self.messages.push(format!("Special words (debug): {:?}", self.special_words));
     }
 
+      /// Binds each special word to a hardcoded significant room ID.
+    ///
+    /// the first word maps to room 1001,
+    /// This mapping changes every run
+    /// since the words are drawn randomly.
+    
     fn bind_special_words(&mut self) {
         let special_room_ids = [1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009, 1010];
         for (index, word) in self.special_words.iter().enumerate() {
@@ -211,6 +221,13 @@ impl Game {
         }
     }
 
+    
+     /// Builds and inserts all hardcoded special rooms into the game map.
+    ///
+    /// Special rooms use fixed IDs in the range 1000-1010.
+    /// Game over rooms use IDs in the range 9001-9005.
+    /// The final exit room has ID 9999.
+    
     fn define_special_rooms(&mut self) {
         let mut start_room = Room::new(Some(STARTING_ROOM_ID));
         start_room.set_name("White Hall".to_string());
@@ -378,6 +395,12 @@ impl Game {
         self.room_map.insert(FINAL_ROOM_ID, exit_room);
     }
 
+     /// Creates a game over room with the given ID and death message,
+    /// then inserts it into the game map.
+    ///
+    /// # Arguments
+    /// * 'id' : The game ID for this game over room.
+    /// * 'death_reason' : A description of how the player died.
     fn add_game_over_room(&mut self, id: i64, death_reason: &str) {
         let mut room = Room::new(Some(id));
         room.set_name("GAME OVER".to_string());
@@ -386,6 +409,14 @@ impl Game {
         self.room_map.insert(id, room);
     }
 
+    /// Generates a procedural room from a seed word using deterministic hashing.
+    ///
+    /// The seed word is hashed using Rust's 'DefaultHasher' to produce a 'u64'.
+    /// This value seeds a 'StdRng', which deterministically selects 1-2 items
+    /// from the pool of clue items. The same word always produces the same room contents.
+    ///
+    /// # Arguments
+    /// * 'seed' : The word entered by the player.
     fn generate_procedural_room_from_seed(&mut self, seed: &str) -> Room {
         let id = self.next_procedural_id;
         self.next_procedural_id += 1;
@@ -425,6 +456,10 @@ impl Game {
         room
     }
 
+     /// Prompts the player to enter a seed word, then moves them to the resulting room.
+    ///
+    /// If the word matches a special word, the player enters the associated
+    /// significant room. Otherwise, a procedural room is generated from the word.
     fn prompt_for_seed_and_move(&mut self) {
         print!("Enter a word to open the door: ");
         io::stdout().flush().unwrap();
