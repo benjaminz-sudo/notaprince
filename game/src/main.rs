@@ -468,8 +468,10 @@ impl Game {
         let seed = seed.trim().to_lowercase();
 
         let target_id = if let Some(&room_id) = self.special_word_to_room_id.get(&seed) {
+            // special word, leads to a hardcoded significant room
             room_id
         } else {
+            //generate a procedural room
             let new_room = self.generate_procedural_room_from_seed(&seed);
             let new_id = new_room.id_game;
             self.room_map.insert(new_id, new_room);
@@ -480,6 +482,10 @@ impl Game {
         self.player_position_index += 1;
     }
 
+    /// Pushes available commands for the current room into the message queue.
+    ///
+    /// # Arguments
+    /// * 'room' : Reference to the current room.
     fn show_help(&mut self, room: &Room) {
         self.messages.push("Available commands:".to_string());
         self.messages.push("  - help: show this help message".to_string());
@@ -498,6 +504,7 @@ impl Game {
         }
     }
 
+    /// Pushes the player's current inventory contents into the message queue.
     fn show_inventory(&mut self) {
         if self.inventory.is_empty() {
             self.messages.push("Your inventory is empty.".to_string());
@@ -509,6 +516,13 @@ impl Game {
         }
     }
 
+    
+    /// Attempts to pick up the first carryable item in the current room.
+    ///
+    /// If the item reveals a special word, that word is shown to the player.
+    ///
+    /// # Arguments
+    /// * 'current_id' : The game ID of the room the player is currently in.
     fn take_item(&mut self, current_id: i64) {
         if let Some(room) = self.room_map.get_mut(&current_id) {
             if let Some(index) = room.items.iter().position(|i| i.carry_able()) {
@@ -526,6 +540,8 @@ impl Game {
         }
     }
 
+     /// Main game loop. Displays the current room, reads player input,
+    /// and dispatches commands until the player wins or exits.
     pub fn play(&mut self) {
         println!("{}", "\n=== WELCOME TO NOTAPRINCE ===\n".bold());
 
@@ -627,6 +643,17 @@ impl Game {
     }
 }
 
+/// Randomly draws 'count' words from the built-in dictionary without replacement.
+///
+/// Uses a Fisher-Yates shuffle for unbiased random selection.
+/// These words are the only ones that unlock significant rooms 
+/// the player must discover them through exploration and item clues.
+///
+/// # Arguments
+/// * 'count' : Number of words to draw. Must not exceed the dictionary size (20).
+///
+/// # Returns
+/// A 'Vec<String>' of 'count' randomly selected words.
 pub fn pick_special_words(count: usize) -> Vec<String> {
     let dictionary = vec![
         "lune", "forge", "cendre", "miroir", "epine",
@@ -636,6 +663,7 @@ pub fn pick_special_words(count: usize) -> Vec<String> {
     ];
     let mut rng = rand::thread_rng();
     let mut picked = dictionary.clone();
+    // Fisher-Yates shuffl
     for i in (1..picked.len()).rev() {
         let j = rng.gen_range(0..=i);
         picked.swap(i, j);
