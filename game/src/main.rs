@@ -653,7 +653,7 @@ impl Game {
 /// * 'count' : Number of words to draw. Must not exceed the dictionary size (20).
 ///
 /// # Returns
-/// A 'Vec<String>' of 'count' randomly selected words.
+/// Returns a `Vec<String>` containing `count` randomly selected words.
 pub fn pick_special_words(count: usize) -> Vec<String> {
     let dictionary = vec![
         "lune", "forge", "cendre", "miroir", "epine",
